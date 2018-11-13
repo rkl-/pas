@@ -6,6 +6,18 @@ import "github.com/satori/go.uuid"
 //
 //
 type Ledger struct {
+	eventDispatcher *EventDispatcher
+}
+
+// GetInstance create new ledger instance
+//
+//
+func (l Ledger) New(eventDispatcher *EventDispatcher) *Ledger {
+	le := &Ledger{
+		eventDispatcher: eventDispatcher,
+	}
+
+	return le
 }
 
 // Account a ledger account
@@ -27,7 +39,7 @@ func (l *Ledger) CreateAccount(title, currencyId string) *Account {
 		balance: Money{}.NewFromInt(0, currencyId),
 	}
 
-	// TODO, dispatch domain event: AccountCreatedEvent
+	l.eventDispatcher.Dispatch(&AccountCreatedEvent{a.id})
 
 	return a
 }
