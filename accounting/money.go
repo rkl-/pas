@@ -3,6 +3,7 @@ package accounting
 import (
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 // MoneyAmountFromStringError error when money should created from invalid string
@@ -67,4 +68,29 @@ func (m Money) GetCurrencyId() string {
 func (m Money) GetAmount() *big.Int {
 	// To ensure that origin can not be changed.
 	return big.NewInt(0).Set(m.amount)
+}
+
+// IsLowerThan test if value is lower than self value
+//
+//
+func (m Money) IsLowerThan(value Money) (bool, error) {
+	if strings.Compare(m.currencyId, value.GetCurrencyId()) != 0 {
+		return false, &UnequalCurrenciesError{}
+	}
+
+	selfAmount := m.amount
+	valueAmount := value.GetAmount()
+
+	return selfAmount.Cmp(valueAmount) == -1, nil
+}
+
+// IsEqual test if value is equal to self
+//
+//
+func (m Money) IsEqual(value Money) bool {
+	if strings.Compare(m.currencyId, value.GetCurrencyId()) != 0 {
+		return false
+	}
+
+	return m.amount.Cmp(value.GetAmount()) == 0
 }

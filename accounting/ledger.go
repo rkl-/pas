@@ -1,6 +1,9 @@
 package accounting
 
-import "github.com/satori/go.uuid"
+import (
+	"github.com/satori/go.uuid"
+	"math/big"
+)
 
 // Ledger ledger for accounting
 //
@@ -42,4 +45,40 @@ func (l *Ledger) CreateAccount(title, currencyId string) *Account {
 	l.eventDispatcher.Dispatch(&AccountCreatedEvent{a.id})
 
 	return a
+}
+
+// TransferValue transfer value from one account to another
+//
+//
+func (l *Ledger) TransferValue(fromAccount, toAccount *Account, value Money, reason string) error {
+	ok, err := fromAccount.balance.IsLowerThan(value)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return &InsufficientFoundsError{}
+	}
+
+	currencyId := fromAccount.balance.GetCurrencyId()
+	oldFromAmount := fromAccount.balance.GetAmount()
+	oldToAmount := toAccount.balance.GetAmount()
+
+	newFromAmount := (&big.Int{}).Sub(oldFromAmount, value.GetAmount())
+	newToAmount := (&big.Int{}).Add(oldToAmount, value.GetAmount())
+
+	newFromBalance, err := Money{}.NewFromString(newFromAmount.String(), currencyId)
+	if err != nil {
+		return err
+	}
+	newToBalance, err := Money{}.NewFromString(newToAmount.String(), currencyId)
+	if err != nil {
+		return err
+	}
+
+	fromAccount.balance = newFromBalance
+	toAccount.balance = newToBalance
+
+	// TODO, dispatch AccountValueTransferEvent
+
+	return nil
 }

@@ -42,3 +42,51 @@ func TestMoney_NewFromString(t *testing.T) {
 	assert.IsType(t, &MoneyAmountFromStringError{}, err)
 	assert.Equal(t, fmt.Sprintf("cannot set 'money.amount' from '%s'", testInvalidAmount), err.Error())
 }
+
+// TestMoney_IsLowerThan
+//
+//
+func TestMoney_IsLowerThan(t *testing.T) {
+	// positive test
+	x := Money{}.NewFromInt(100, "EUR") // 1.00 EUR
+	y := Money{}.NewFromInt(101, "EUR") // 1.01 EUR
+
+	ok, _ := x.IsLowerThan(y)
+	assert.True(t, ok)
+
+	// negative test #1
+	y = Money{}.NewFromInt(100, "EUR") // 1.00 EUR
+
+	ok, _ = x.IsLowerThan(y)
+	assert.False(t, ok)
+
+	// negative test #2
+	y = Money{}.NewFromInt(99, "EUR") // 0.99 EUR
+
+	ok, _ = x.IsLowerThan(y)
+	assert.False(t, ok)
+
+	// currency mismatch test
+	y = Money{}.NewFromInt(999, "USD") // 9.99 USD
+
+	_, err := x.IsLowerThan(y)
+	assert.IsType(t, &UnequalCurrenciesError{}, err)
+}
+
+// TestMoney_IsEqual
+//
+//
+func TestMoney_IsEqual(t *testing.T) {
+	// positive test
+	x := Money{}.NewFromInt(1000, "EUR") // 10.00 EUR
+	y := Money{}.NewFromInt(1000, "EUR") // 10.00 EUR
+	assert.True(t, x.IsEqual(y))
+
+	// negative test #1
+	y = Money{}.NewFromInt(1000, "USD") // 10.00 USD
+	assert.False(t, x.IsEqual(y))
+
+	// negative test #2
+	y = Money{}.NewFromInt(1001, "EUR") // 10.01 EUR
+	assert.False(t, x.IsEqual(y))
+}
