@@ -80,8 +80,9 @@ func (e *AccountCreatedEvent) GetName() string {
 //
 //
 type AccountValueTransferredEvent struct {
-	from uuid.UUID
-	to   uuid.UUID
+	from  uuid.UUID
+	to    uuid.UUID
+	value Money
 }
 
 // GetName get event name
