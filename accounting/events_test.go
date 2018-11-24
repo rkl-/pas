@@ -17,7 +17,7 @@ func (e *testEvent) GetName() string {
 type testEventHandler struct {
 }
 
-func (h *testEventHandler) Handle(event EventInterface) {
+func (h *testEventHandler) Handle(event Event) {
 	testEventHandlerExecuted = true
 }
 

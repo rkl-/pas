@@ -1,16 +1,18 @@
 package accounting
 
 import (
+	"fmt"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-var currentEvent EventInterface
+var currentEvent Event
 
 type TestEventHandler struct {
 }
 
-func (h *TestEventHandler) Handle(event EventInterface) {
+func (h *TestEventHandler) Handle(event Event) {
 	currentEvent = event
 }
 
@@ -21,7 +23,7 @@ func TestLedger_CreateAccount(t *testing.T) {
 	eventDispatcherInstance = nil
 
 	eventDispatcher := EventDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher)
+	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountCreatedEvent{}).GetName(), &TestEventHandler{})
 
@@ -34,6 +36,7 @@ func TestLedger_CreateAccount(t *testing.T) {
 	assert.Equal(t, acc.balance, Money{}.NewFromInt(0, "BTC"))
 	assert.Equal(t, acc.id, currentEvent.(*AccountCreatedEvent).accountId)
 	assert.Equal(t, acc.title, currentEvent.(*AccountCreatedEvent).accountTitle)
+	assert.Equal(t, "BTC", currentEvent.(*AccountCreatedEvent).currencyId)
 }
 
 // TestLedger_TransferValue
@@ -41,7 +44,7 @@ func TestLedger_CreateAccount(t *testing.T) {
 //
 func TestLedger_TransferValue(t *testing.T) {
 	eventDispatcher := EventDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher)
+	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestEventHandler{})
 
@@ -71,7 +74,7 @@ func TestLedger_TransferValue(t *testing.T) {
 //
 func TestLedger_AddValue(t *testing.T) {
 	eventDispatcher := EventDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher)
+	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueAddedEvent{}).GetName(), &TestEventHandler{})
 
@@ -114,7 +117,7 @@ func TestLedger_AddValue(t *testing.T) {
 //
 func TestLedger_SubtractValue(t *testing.T) {
 	eventDispatcher := EventDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher)
+	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueSubtractedEvent{}).GetName(), &TestEventHandler{})
 
@@ -143,4 +146,92 @@ func TestLedger_SubtractValue(t *testing.T) {
 	assert.Equal(t, acc.id, currentEvent.(*AccountValueSubtractedEvent).accountId)
 	assert.Equal(t, subValue, currentEvent.(*AccountValueSubtractedEvent).value)
 	assert.Equal(t, "what ever", currentEvent.(*AccountValueSubtractedEvent).reason)
+}
+
+// TestLedger_LoadAccount
+//
+//
+func TestLedger_LoadAccount(t *testing.T) {
+	storage := &inMemoryEventStorage{}
+	ledger := Ledger{}.New(nil, storage)
+
+	accountId := uuid.NewV4()
+
+	// negative test when first event is not AccountCreatedEvent
+	storage.AddEvent(&AccountValueAddedEvent{
+		accountId: accountId,
+		value:     Money{}.NewFromInt(1000000, "EUR"), // 10,000.00 EUR
+		reason:    "initial",
+	})
+	assert.Len(t, ledger.eventStorage.(*inMemoryEventStorage).events, 1)
+
+	_, err := ledger.LoadAccount(accountId)
+	assert.IsType(t, &AccountCreatedEventNotFoundError{}, err)
+
+	// positive test
+	storage.events = []Event{} // clear old events
+
+	storage.AddEvent(&AccountCreatedEvent{
+		accountId:    accountId,
+		accountTitle: "Test Account",
+		currencyId:   "EUR",
+	})
+	storage.AddEvent(&AccountValueAddedEvent{
+		accountId: accountId,
+		value:     Money{}.NewFromInt(1000000, "EUR"), // 10,000.00 EUR
+		reason:    "initial",
+	})
+	storage.AddEvent(&AccountValueSubtractedEvent{
+		accountId: accountId,
+		value:     Money{}.NewFromInt(90000, "EUR"), // 9,00.00 EUR (new account balance: 9,100.00 EUR)
+		reason:    "monthly apartment rent",
+	})
+	storage.AddEvent(&AccountValueAddedEvent{
+		accountId: accountId,
+		value:     Money{}.NewFromInt(660000, "EUR"), // 6,600.00 EUR (new account balance: 15,700.00 EUR)
+		reason:    "monthly salary",
+	})
+	storage.AddEvent(&AccountValueTransferredEvent{
+		fromId: accountId,
+		toId:   uuid.NewV4(),
+		value:  Money{}.NewFromInt(100000, "EUR"), // 1,000.00 EUR (new account balance: 14,700.00 EUR)
+		reason: "reserves",
+	})
+	storage.AddEvent(&AccountValueTransferredEvent{
+		fromId: uuid.NewV4(),
+		toId:   accountId,
+		value:  Money{}.NewFromInt(50000, "EUR"), // 500.00 EUR (new account balance: 15,200.00 EUR)
+		reason: "holidays",
+	})
+
+	// This two events should be ignored for our account, because they refer different accounts.
+	storage.AddEvent(&AccountValueSubtractedEvent{
+		accountId: uuid.NewV4(),
+		value:     Money{}.NewFromInt(10000, "EUR"), // 100.00 EUR
+		reason:    "what ever",
+	})
+	storage.AddEvent(&AccountValueTransferredEvent{
+		fromId: uuid.NewV4(),
+		toId:   uuid.NewV4(),
+		value:  Money{}.NewFromInt(5000, "EUR"), // 50.00 EUR
+		reason: "birthday",
+	})
+
+	assert.Len(t, ledger.eventStorage.(*inMemoryEventStorage).events, 8)
+
+	// test history for account
+	history := []Event{}
+
+	for event := range ledger.getHistoryFor(accountId) {
+		history = append(history, event)
+	}
+	assert.Len(t, history, 6)
+
+	// try to load
+	account, err := ledger.LoadAccount(accountId)
+	assert.Nil(t, err)
+	assert.Equal(t, accountId, account.id)
+	assert.Equal(t, "Test Account", account.title)
+	fmt.Printf("%s\n", account.balance.amount.String())
+	assert.Equal(t, Money{}.NewFromInt(1520000, "EUR"), account.balance)
 }

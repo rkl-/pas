@@ -4,25 +4,33 @@ import "github.com/satori/go.uuid"
 
 var eventDispatcherInstance *EventDispatcher
 
-// EventInterface event interface
+// EventStorage common storage for events
 //
 //
-type EventInterface interface {
+type EventStorage interface {
+	AddEvent(event Event)
+	GetEventStream() chan Event
+}
+
+// Event event interface
+//
+//
+type Event interface {
 	GetName() string
 }
 
-// EventSubscriberInterface interface for event subscriber
+// EventHandler interface for event subscriber
 //
 //
-type EventHandlerInterface interface {
-	Handle(event EventInterface)
+type EventHandler interface {
+	Handle(event Event)
 }
 
 // EventDispatcher accounting event dispatcher
 //
 //
 type EventDispatcher struct {
-	handlers map[string][]EventHandlerInterface
+	handlers map[string][]EventHandler
 }
 
 // GetInstance creates new event dispatcher
@@ -31,7 +39,7 @@ type EventDispatcher struct {
 func (d EventDispatcher) GetInstance() *EventDispatcher {
 	if eventDispatcherInstance == nil {
 		ed := &EventDispatcher{
-			handlers: map[string][]EventHandlerInterface{},
+			handlers: map[string][]EventHandler{},
 		}
 
 		eventDispatcherInstance = ed
@@ -43,14 +51,14 @@ func (d EventDispatcher) GetInstance() *EventDispatcher {
 // RegisterHandler register an event handler
 //
 //
-func (d *EventDispatcher) RegisterHandler(eventName string, handler EventHandlerInterface) {
+func (d *EventDispatcher) RegisterHandler(eventName string, handler EventHandler) {
 	d.handlers[eventName] = append(d.handlers[eventName], handler)
 }
 
 // Dispatch dispatch an event
 //
 //
-func (d *EventDispatcher) Dispatch(event EventInterface) {
+func (d *EventDispatcher) Dispatch(event Event) {
 	if handlers, ok := d.handlers[event.GetName()]; ok {
 		for _, handler := range handlers {
 			handler.Handle(event)
@@ -68,6 +76,7 @@ func (d *EventDispatcher) Dispatch(event EventInterface) {
 type AccountCreatedEvent struct {
 	accountId    uuid.UUID
 	accountTitle string
+	currencyId   string
 }
 
 func (e *AccountCreatedEvent) GetName() string {
