@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// MoneyAmountFromStringError error when money should created from invalid string
+// MoneyAmountFromStringError error when money should created fromId invalid string
 //
 //
 type MoneyAmountFromStringError struct {
@@ -28,7 +28,7 @@ type Money struct {
 	currencyId string
 }
 
-// Money.NewFromInt creates new money instance from default integer
+// Money.NewFromInt creates new money instance fromId default integer
 //
 //
 func (m Money) NewFromInt(amount int, currenceId string) Money {
@@ -38,7 +38,7 @@ func (m Money) NewFromInt(amount int, currenceId string) Money {
 	return m
 }
 
-// NewFromString creates new money instance from string
+// NewFromString creates new money instance fromId string
 //
 //
 func (m Money) NewFromString(amount string, currencyId string) (Money, error) {
@@ -84,7 +84,7 @@ func (m Money) IsLowerThan(value Money) (bool, error) {
 	return selfAmount.Cmp(valueAmount) == -1, nil
 }
 
-// IsEqual test if value is equal to self
+// IsEqual test if value is equal toId self
 //
 //
 func (m Money) IsEqual(value Money) bool {

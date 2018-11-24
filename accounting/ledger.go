@@ -3,6 +3,7 @@ package accounting
 import (
 	"github.com/satori/go.uuid"
 	"math/big"
+	"strings"
 )
 
 // Ledger ledger for accounting
@@ -23,7 +24,7 @@ func (l Ledger) New(eventDispatcher *EventDispatcher) *Ledger {
 	return le
 }
 
-// Account a ledger account
+// Account a ledger accountId
 //
 //
 type Account struct {
@@ -32,7 +33,7 @@ type Account struct {
 	balance Money
 }
 
-// CreateAccount create a new ledger account
+// CreateAccount create a new ledger accountId
 //
 //
 func (l *Ledger) CreateAccount(title, currencyId string) *Account {
@@ -42,12 +43,15 @@ func (l *Ledger) CreateAccount(title, currencyId string) *Account {
 		balance: Money{}.NewFromInt(0, currencyId),
 	}
 
-	l.eventDispatcher.Dispatch(&AccountCreatedEvent{a.id})
+	l.eventDispatcher.Dispatch(&AccountCreatedEvent{
+		accountId:    a.id,
+		accountTitle: title,
+	})
 
 	return a
 }
 
-// TransferValue transfer value from one account to another
+// TransferValue transfer value fromId one accountId toId another
 //
 //
 func (l *Ledger) TransferValue(fromAccount, toAccount *Account, value Money, reason string) error {
@@ -79,9 +83,68 @@ func (l *Ledger) TransferValue(fromAccount, toAccount *Account, value Money, rea
 	toAccount.balance = newToBalance
 
 	l.eventDispatcher.Dispatch(&AccountValueTransferredEvent{
-		from:  fromAccount.id,
-		to:    toAccount.id,
-		value: value,
+		fromId: fromAccount.id,
+		toId:   toAccount.id,
+		value:  value,
+		reason: reason,
+	})
+
+	return nil
+}
+
+// AddValue add new value to an account
+//
+//
+func (l *Ledger) AddValue(toAccount *Account, value Money, reason string) error {
+	if strings.Compare(toAccount.balance.currencyId, value.currencyId) != 0 {
+		return &UnequalCurrenciesError{}
+	}
+
+	currencyId := toAccount.balance.currencyId
+	newAmount := (&big.Int{}).Add(toAccount.balance.amount, value.amount)
+
+	newBalance, err := Money{}.NewFromString(newAmount.String(), currencyId)
+	if err != nil {
+		return err
+	}
+
+	toAccount.balance = newBalance
+
+	l.eventDispatcher.Dispatch(&AccountValueAddedEvent{
+		accountId: toAccount.id,
+		value:     value,
+		reason:    reason,
+	})
+
+	return nil
+}
+
+// SubtractValue subtract value from an account
+//
+//
+func (l *Ledger) SubtractValue(fromAccount *Account, value Money, reason string) error {
+	ok, err := fromAccount.balance.IsLowerThan(value)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return &InsufficientFoundsError{}
+	}
+
+	currencyId := fromAccount.balance.currencyId
+	newAmount := (&big.Int{}).Sub(fromAccount.balance.amount, value.amount)
+
+	newBalance, err := Money{}.NewFromString(newAmount.String(), currencyId)
+	if err != nil {
+		return err
+	}
+
+	fromAccount.balance = newBalance
+
+	l.eventDispatcher.Dispatch(&AccountValueSubtractedEvent{
+		accountId: fromAccount.id,
+		value:     value,
+		reason:    reason,
 	})
 
 	return nil
