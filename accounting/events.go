@@ -58,6 +58,10 @@ func (d *EventDispatcher) Dispatch(event EventInterface) {
 	}
 }
 
+////////////////////////////////////////////////////////////////////
+// EVENTS BELOW
+////////////////////////////////////////////////////////////////////
+
 // AccountCreatedEvent event when an account was created
 //
 //
@@ -70,4 +74,19 @@ type AccountCreatedEvent struct {
 //
 func (e *AccountCreatedEvent) GetName() string {
 	return "event.account_created"
+}
+
+// AccountValueTransferredEvent event when value was transferred from one account to another
+//
+//
+type AccountValueTransferredEvent struct {
+	from uuid.UUID
+	to   uuid.UUID
+}
+
+// GetName get event name
+//
+//
+func (e *AccountValueTransferredEvent) GetName() string {
+	return "event.account_value_transffered"
 }

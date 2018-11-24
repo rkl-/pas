@@ -78,7 +78,10 @@ func (l *Ledger) TransferValue(fromAccount, toAccount *Account, value Money, rea
 	fromAccount.balance = newFromBalance
 	toAccount.balance = newToBalance
 
-	// TODO, dispatch AccountValueTransferEvent
+	l.eventDispatcher.Dispatch(&AccountValueTransferredEvent{
+		from: fromAccount.id,
+		to:   toAccount.id,
+	})
 
 	return nil
 }

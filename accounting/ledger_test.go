@@ -6,12 +6,20 @@ import (
 )
 
 var testLedgerCreateAccountHandlerExecuted = false
+var testLedgerAccountValueTransferExecuted = false
 
 type TestAccountCreatedEventHandler struct {
 }
 
 func (h *TestAccountCreatedEventHandler) Handle(event EventInterface) {
 	testLedgerCreateAccountHandlerExecuted = true
+}
+
+type TestAccountValueTransferredEventHandler struct {
+}
+
+func (h *TestAccountValueTransferredEventHandler) Handle(event EventInterface) {
+	testLedgerAccountValueTransferExecuted = true
 }
 
 // TestLedger_CreateAccount
@@ -36,7 +44,10 @@ func TestLedger_CreateAccount(t *testing.T) {
 //
 //
 func TestLedger_TransferValue(t *testing.T) {
-	ledger := Ledger{}.New(EventDispatcher{}.GetInstance())
+	eventDispatcher := EventDispatcher{}.GetInstance()
+	ledger := Ledger{}.New(eventDispatcher)
+
+	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestAccountValueTransferredEventHandler{})
 
 	// positive test
 	fromAccount := ledger.CreateAccount("from account", "EUR")
@@ -49,6 +60,5 @@ func TestLedger_TransferValue(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, fromAccount.balance.IsEqual(Money{}.NewFromInt(90000, "EUR"))) // 900.00 EUR
 	assert.True(t, toAccount.balance.IsEqual(Money{}.NewFromInt(60000, "EUR")))   // 600.00 EUR
-
-	// TODO, test dispatching of AccountValueTransferEvent
+	assert.True(t, testLedgerAccountValueTransferExecuted)
 }
