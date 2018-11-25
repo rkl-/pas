@@ -19,6 +19,13 @@ type Event interface {
 	GetName() string
 }
 
+// SingleAccountEvent event which has an unique account association
+//
+//
+type SingleAccountEvent interface {
+	GetAccountId() uuid.UUID
+}
+
 // EventHandler interface for event subscriber
 //
 //
@@ -83,6 +90,10 @@ func (e *AccountCreatedEvent) GetName() string {
 	return "event.account_created"
 }
 
+func (e *AccountCreatedEvent) GetAccountId() uuid.UUID {
+	return e.accountId
+}
+
 // AccountValueTransferredEvent event when value was transferred fromId one accountId toId another
 //
 //
@@ -110,6 +121,10 @@ func (e *AccountValueAddedEvent) GetName() string {
 	return "event.account_value_added"
 }
 
+func (e *AccountValueAddedEvent) GetAccountId() uuid.UUID {
+	return e.accountId
+}
+
 // AccountValueSubtractedEvent event when value from an account was subtracted
 //
 //
@@ -121,4 +136,8 @@ type AccountValueSubtractedEvent struct {
 
 func (e *AccountValueSubtractedEvent) GetName() string {
 	return "event.account_value_subtracted"
+}
+
+func (e *AccountValueSubtractedEvent) GetAccountId() uuid.UUID {
+	return e.accountId
 }

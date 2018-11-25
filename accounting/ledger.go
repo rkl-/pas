@@ -253,18 +253,8 @@ func (l *Ledger) getHistoryFor(accountId uuid.UUID) chan Event {
 
 		for event := range l.eventStorage.GetEventStream() {
 			switch event.(type) {
-			case *AccountCreatedEvent:
-				if event.(*AccountCreatedEvent).accountId == accountId {
-					ch <- event
-				}
-				break
-			case *AccountValueAddedEvent:
-				if event.(*AccountValueAddedEvent).accountId == accountId {
-					ch <- event
-				}
-				break
-			case *AccountValueSubtractedEvent:
-				if event.(*AccountValueSubtractedEvent).accountId == accountId {
+			case SingleAccountEvent:
+				if event.(SingleAccountEvent).GetAccountId() == accountId {
 					ch <- event
 				}
 				break
