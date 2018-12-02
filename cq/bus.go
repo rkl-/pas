@@ -20,11 +20,18 @@ func (b CommandBus) GetInstance() *CommandBus {
 	return commandBusInstance
 }
 
+// Request any kind of request
+//
+//
+type Request interface {
+	GetRequestId() string
+}
+
 // RequestHandler request handler
 //
 //
 type RequestHandler interface {
-	Handle(request interface{}) (interface{}, error)
+	Handle(request Request) (interface{}, error)
 }
 
 // RequestBus generic request bus
@@ -32,7 +39,7 @@ type RequestHandler interface {
 //
 type RequestBus interface {
 	RegisterHandler(requestId string, handler RequestHandler) error
-	Execute(request interface{}) (interface{}, error)
+	Execute(request Request) (interface{}, error)
 }
 
 // genericRequestBus generic request bus
@@ -56,5 +63,17 @@ func (b *genericRequestBus) RegisterHandler(requestId string, handler RequestHan
 		return &HandlerAlreadyRegisteredError{requestId}
 	}
 
+	b.handlers[requestId] = handler
+
 	return nil
+}
+
+func (b *genericRequestBus) Execute(request Request) (interface{}, error) {
+	requestId := request.GetRequestId()
+
+	if _, ok := b.handlers[requestId]; !ok {
+		return nil, &RequestHandlerNotRegisteredError{requestId}
+	}
+
+	return b.handlers[requestId].Handle(request)
 }

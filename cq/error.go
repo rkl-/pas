@@ -23,3 +23,24 @@ type InvalidHandlerIdError struct {
 func (e *InvalidHandlerIdError) Error() string {
 	return fmt.Sprintf("the handler id must have the prefix \"%s\"", e.requiredPrefix)
 }
+
+// RequestHandlerNotRegisteredError
+//
+//
+type RequestHandlerNotRegisteredError struct {
+	requestId string
+}
+
+func (e *RequestHandlerNotRegisteredError) Error() string {
+	return fmt.Sprintf("no handler registered for request id \"%s\"", e.requestId)
+}
+
+// RequestNotSupportedError
+//
+//
+type UnsupportedRequestError struct {
+}
+
+func (e *UnsupportedRequestError) Error() string {
+	return fmt.Sprintf("unsupported request")
+}
