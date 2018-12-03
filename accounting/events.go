@@ -2,16 +2,7 @@ package accounting
 
 import (
 	"github.com/satori/go.uuid"
-	"pas/events"
 )
-
-// EventStorage common storage for events
-//
-//
-type EventStorage interface {
-	AddEvent(event events.Event)
-	GetEventStream() chan events.Event
-}
 
 // SingleAccountEvent event which has an unique account association
 //
@@ -19,10 +10,6 @@ type EventStorage interface {
 type SingleAccountEvent interface {
 	GetAccountId() uuid.UUID
 }
-
-////////////////////////////////////////////////////////////////////
-// EVENTS BELOW
-////////////////////////////////////////////////////////////////////
 
 // AccountCreatedEvent event when an accountId was created
 //

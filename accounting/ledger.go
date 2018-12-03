@@ -12,13 +12,13 @@ import (
 //
 type Ledger struct {
 	eventDispatcher events.EventDispatcher
-	eventStorage    EventStorage
+	eventStorage    events.EventStorage
 }
 
 // GetInstance create new ledger instance
 //
 //
-func (l Ledger) New(eventDispatcher events.EventDispatcher, eventStorage EventStorage) *Ledger {
+func (l Ledger) New(eventDispatcher events.EventDispatcher, eventStorage events.EventStorage) *Ledger {
 	if eventDispatcher == nil {
 		panic("event dispatcher is required")
 	}

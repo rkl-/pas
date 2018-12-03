@@ -17,6 +17,35 @@ func (h *TestEventHandler) Handle(event events.Event) {
 	currentEvent = event
 }
 
+// TestEventStorage
+//
+//
+type TestEventStorage struct {
+	events []events.Event
+}
+
+func (s *TestEventStorage) AddEvent(event events.Event) {
+	if s.events == nil {
+		s.events = []events.Event{}
+	}
+
+	s.events = append(s.events, event)
+}
+
+func (s *TestEventStorage) GetEventStream() chan events.Event {
+	ch := make(chan events.Event)
+
+	go func() {
+		defer close(ch)
+
+		for _, event := range s.events {
+			ch <- event
+		}
+	}()
+
+	return ch
+}
+
 // TestLedger_CreateAccount
 //
 //
@@ -151,7 +180,7 @@ func TestLedger_SubtractValue(t *testing.T) {
 //
 //
 func TestLedger_LoadAccount(t *testing.T) {
-	storage := &inMemoryEventStorage{}
+	storage := &TestEventStorage{}
 	ledger := Ledger{}.New(events.DomainDispatcher{}.GetInstance(), storage)
 
 	accountId := uuid.NewV4()
@@ -162,7 +191,7 @@ func TestLedger_LoadAccount(t *testing.T) {
 		value:     Money{}.NewFromInt(1000000, "EUR"), // 10,000.00 EUR
 		reason:    "initial",
 	})
-	assert.Len(t, ledger.eventStorage.(*inMemoryEventStorage).events, 1)
+	assert.Len(t, ledger.eventStorage.(*TestEventStorage).events, 1)
 
 	_, err := ledger.LoadAccount(accountId)
 	assert.IsType(t, &AccountCreatedEventNotFoundError{}, err)
@@ -216,7 +245,7 @@ func TestLedger_LoadAccount(t *testing.T) {
 		reason: "birthday",
 	})
 
-	assert.Len(t, ledger.eventStorage.(*inMemoryEventStorage).events, 8)
+	assert.Len(t, ledger.eventStorage.(*TestEventStorage).events, 8)
 
 	// test history for account
 	history := []events.Event{}
