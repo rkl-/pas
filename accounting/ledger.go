@@ -3,6 +3,7 @@ package accounting
 import (
 	"github.com/satori/go.uuid"
 	"math/big"
+	"pas/events"
 	"strings"
 )
 
@@ -10,14 +11,14 @@ import (
 //
 //
 type Ledger struct {
-	eventDispatcher *EventDispatcher
+	eventDispatcher *events.EventDispatcher
 	eventStorage    EventStorage
 }
 
 // GetInstance create new ledger instance
 //
 //
-func (l Ledger) New(eventDispatcher *EventDispatcher, eventStorage EventStorage) *Ledger {
+func (l Ledger) New(eventDispatcher *events.EventDispatcher, eventStorage EventStorage) *Ledger {
 	le := &Ledger{
 		eventDispatcher: eventDispatcher,
 		eventStorage:    eventStorage,
@@ -245,8 +246,8 @@ func (l *Ledger) LoadAccount(accountId uuid.UUID) (*Account, error) {
 	return account, nil
 }
 
-func (l *Ledger) getHistoryFor(accountId uuid.UUID) chan Event {
-	ch := make(chan Event)
+func (l *Ledger) getHistoryFor(accountId uuid.UUID) chan events.Event {
+	ch := make(chan events.Event)
 
 	go func() {
 		defer close(ch)

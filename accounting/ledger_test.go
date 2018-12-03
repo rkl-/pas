@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"pas/events"
 	"testing"
 )
 
-var currentEvent Event
+var currentEvent events.Event
 
 type TestEventHandler struct {
 }
 
-func (h *TestEventHandler) Handle(event Event) {
+func (h *TestEventHandler) Handle(event events.Event) {
 	currentEvent = event
 }
 
@@ -20,9 +21,7 @@ func (h *TestEventHandler) Handle(event Event) {
 //
 //
 func TestLedger_CreateAccount(t *testing.T) {
-	eventDispatcherInstance = nil
-
-	eventDispatcher := EventDispatcher{}.GetInstance()
+	eventDispatcher := events.EventDispatcher{}.GetInstance()
 	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountCreatedEvent{}).GetName(), &TestEventHandler{})
@@ -43,7 +42,7 @@ func TestLedger_CreateAccount(t *testing.T) {
 //
 //
 func TestLedger_TransferValue(t *testing.T) {
-	eventDispatcher := EventDispatcher{}.GetInstance()
+	eventDispatcher := events.EventDispatcher{}.GetInstance()
 	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestEventHandler{})
@@ -73,7 +72,7 @@ func TestLedger_TransferValue(t *testing.T) {
 //
 //
 func TestLedger_AddValue(t *testing.T) {
-	eventDispatcher := EventDispatcher{}.GetInstance()
+	eventDispatcher := events.EventDispatcher{}.GetInstance()
 	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueAddedEvent{}).GetName(), &TestEventHandler{})
@@ -116,7 +115,7 @@ func TestLedger_AddValue(t *testing.T) {
 //
 //
 func TestLedger_SubtractValue(t *testing.T) {
-	eventDispatcher := EventDispatcher{}.GetInstance()
+	eventDispatcher := events.EventDispatcher{}.GetInstance()
 	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueSubtractedEvent{}).GetName(), &TestEventHandler{})
@@ -169,7 +168,7 @@ func TestLedger_LoadAccount(t *testing.T) {
 	assert.IsType(t, &AccountCreatedEventNotFoundError{}, err)
 
 	// positive test
-	storage.events = []Event{} // clear old events
+	storage.events = []events.Event{} // clear old events
 
 	storage.AddEvent(&AccountCreatedEvent{
 		accountId:    accountId,
@@ -220,7 +219,7 @@ func TestLedger_LoadAccount(t *testing.T) {
 	assert.Len(t, ledger.eventStorage.(*inMemoryEventStorage).events, 8)
 
 	// test history for account
-	history := []Event{}
+	history := []events.Event{}
 
 	for event := range ledger.getHistoryFor(accountId) {
 		history = append(history, event)

@@ -1,4 +1,4 @@
-package accounting
+package events
 
 import (
 	"github.com/stretchr/testify/assert"

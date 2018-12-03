@@ -3,6 +3,7 @@ package accounting
 import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"pas/events"
 	"testing"
 )
 
@@ -19,7 +20,7 @@ func TestInMemoryEventStorage_AddEvent(t *testing.T) {
 func TestInMemoryEventStorage_GetEventStream(t *testing.T) {
 	storage := getEventStorage(t)
 
-	fetchedStreams := []Event{}
+	fetchedStreams := []events.Event{}
 
 	for event := range storage.GetEventStream() {
 		fetchedStreams = append(fetchedStreams, event)
