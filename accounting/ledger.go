@@ -23,6 +23,10 @@ func (l Ledger) New(eventDispatcher events.EventDispatcher, eventStorage events.
 		panic("event dispatcher is required")
 	}
 
+	if eventStorage == nil {
+		panic("event storage is required")
+	}
+
 	le := &Ledger{
 		eventDispatcher: eventDispatcher,
 		eventStorage:    eventStorage,
