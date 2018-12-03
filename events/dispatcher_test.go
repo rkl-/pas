@@ -25,10 +25,10 @@ func (h *testEventHandler) Handle(event Event) {
 //
 //
 func TestEventDispatcher_GetInstance(t *testing.T) {
-	dispatcher01 := EventDispatcher{}.GetInstance()
+	dispatcher01 := DomainDispatcher{}.GetInstance()
 	dispatcher01.RegisterHandler("event.test", &testEventHandler{})
 
-	dispatcher02 := EventDispatcher{}.GetInstance()
+	dispatcher02 := DomainDispatcher{}.GetInstance()
 
 	assert.Equal(t, dispatcher01, dispatcher02)
 }
@@ -39,14 +39,17 @@ func TestEventDispatcher_GetInstance(t *testing.T) {
 func TestEventDispatcher_RegisterHandler(t *testing.T) {
 	eventDispatcherInstance = nil
 
-	dispatcher := EventDispatcher{}.GetInstance()
+	dispatcher := DomainDispatcher{}.GetInstance()
 	dispatcher.RegisterHandler("event.test", &testEventHandler{})
 
-	assert.Equal(t, 1, len(dispatcher.handlers["event.test"]))
+	domainDispatcher, ok := dispatcher.(*DomainDispatcher)
+	assert.True(t, ok)
+
+	assert.Equal(t, 1, len(domainDispatcher.handlers["event.test"]))
 
 	foundType := false
 
-	switch dispatcher.handlers["event.test"][0].(type) {
+	switch domainDispatcher.handlers["event.test"][0].(type) {
 	case *testEventHandler:
 		foundType = true
 	}
@@ -60,7 +63,7 @@ func TestEventDispatcher_RegisterHandler(t *testing.T) {
 func TestEventDispatcher_Dispatch(t *testing.T) {
 	eventDispatcherInstance = nil
 
-	dispatcher := EventDispatcher{}.GetInstance()
+	dispatcher := DomainDispatcher{}.GetInstance()
 	dispatcher.RegisterHandler("event.test", &testEventHandler{})
 
 	testEventHandlerExecuted = false

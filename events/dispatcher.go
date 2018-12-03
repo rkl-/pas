@@ -1,6 +1,6 @@
 package events
 
-var eventDispatcherInstance *EventDispatcher
+var eventDispatcherInstance *DomainDispatcher
 
 // Event event interface
 //
@@ -16,19 +16,27 @@ type EventHandler interface {
 	Handle(event Event)
 }
 
-// EventDispatcher accounting event dispatcher
+// EventDispatcher event dispatcher
 //
 //
-type EventDispatcher struct {
+type EventDispatcher interface {
+	RegisterHandler(eventName string, handler EventHandler)
+	Dispatch(event Event)
+}
+
+// DomainDispatcher accounting event dispatcher
+//
+//
+type DomainDispatcher struct {
 	handlers map[string][]EventHandler
 }
 
 // GetInstance creates new event dispatcher
 //
 //
-func (d EventDispatcher) GetInstance() *EventDispatcher {
+func (d DomainDispatcher) GetInstance() EventDispatcher {
 	if eventDispatcherInstance == nil {
-		ed := &EventDispatcher{
+		ed := &DomainDispatcher{
 			handlers: map[string][]EventHandler{},
 		}
 
@@ -41,14 +49,14 @@ func (d EventDispatcher) GetInstance() *EventDispatcher {
 // RegisterHandler register an event handler
 //
 //
-func (d *EventDispatcher) RegisterHandler(eventName string, handler EventHandler) {
+func (d *DomainDispatcher) RegisterHandler(eventName string, handler EventHandler) {
 	d.handlers[eventName] = append(d.handlers[eventName], handler)
 }
 
 // Dispatch dispatch an event
 //
 //
-func (d *EventDispatcher) Dispatch(event Event) {
+func (d *DomainDispatcher) Dispatch(event Event) {
 	if handlers, ok := d.handlers[event.GetName()]; ok {
 		for _, handler := range handlers {
 			handler.Handle(event)

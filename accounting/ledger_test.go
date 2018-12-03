@@ -21,7 +21,7 @@ func (h *TestEventHandler) Handle(event events.Event) {
 //
 //
 func TestLedger_CreateAccount(t *testing.T) {
-	eventDispatcher := events.EventDispatcher{}.GetInstance()
+	eventDispatcher := events.DomainDispatcher{}.GetInstance()
 	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountCreatedEvent{}).GetName(), &TestEventHandler{})
@@ -42,7 +42,7 @@ func TestLedger_CreateAccount(t *testing.T) {
 //
 //
 func TestLedger_TransferValue(t *testing.T) {
-	eventDispatcher := events.EventDispatcher{}.GetInstance()
+	eventDispatcher := events.DomainDispatcher{}.GetInstance()
 	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestEventHandler{})
@@ -72,7 +72,7 @@ func TestLedger_TransferValue(t *testing.T) {
 //
 //
 func TestLedger_AddValue(t *testing.T) {
-	eventDispatcher := events.EventDispatcher{}.GetInstance()
+	eventDispatcher := events.DomainDispatcher{}.GetInstance()
 	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueAddedEvent{}).GetName(), &TestEventHandler{})
@@ -115,7 +115,7 @@ func TestLedger_AddValue(t *testing.T) {
 //
 //
 func TestLedger_SubtractValue(t *testing.T) {
-	eventDispatcher := events.EventDispatcher{}.GetInstance()
+	eventDispatcher := events.DomainDispatcher{}.GetInstance()
 	ledger := Ledger{}.New(eventDispatcher, nil)
 
 	eventDispatcher.RegisterHandler((&AccountValueSubtractedEvent{}).GetName(), &TestEventHandler{})
@@ -152,7 +152,7 @@ func TestLedger_SubtractValue(t *testing.T) {
 //
 func TestLedger_LoadAccount(t *testing.T) {
 	storage := &inMemoryEventStorage{}
-	ledger := Ledger{}.New(nil, storage)
+	ledger := Ledger{}.New(events.DomainDispatcher{}.GetInstance(), storage)
 
 	accountId := uuid.NewV4()
 

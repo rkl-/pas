@@ -11,14 +11,18 @@ import (
 //
 //
 type Ledger struct {
-	eventDispatcher *events.EventDispatcher
+	eventDispatcher events.EventDispatcher
 	eventStorage    EventStorage
 }
 
 // GetInstance create new ledger instance
 //
 //
-func (l Ledger) New(eventDispatcher *events.EventDispatcher, eventStorage EventStorage) *Ledger {
+func (l Ledger) New(eventDispatcher events.EventDispatcher, eventStorage EventStorage) *Ledger {
+	if eventDispatcher == nil {
+		panic("event dispatcher is required")
+	}
+
 	le := &Ledger{
 		eventDispatcher: eventDispatcher,
 		eventStorage:    eventStorage,
@@ -34,6 +38,10 @@ type Account struct {
 	id      uuid.UUID
 	title   string
 	balance Money
+}
+
+func (a *Account) GetId() uuid.UUID {
+	return a.id
 }
 
 // CreateAccount create a new ledger account and dispatch AccountCreatedEvent
