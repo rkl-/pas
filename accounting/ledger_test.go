@@ -51,7 +51,7 @@ func (s *TestEventStorage) GetEventStream() chan events.Event {
 //
 func TestLedger_CreateAccount(t *testing.T) {
 	eventDispatcher := events.DomainDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher, &events.InMemoryEventStorage{})
+	ledger := Ledger{}.New(eventDispatcher, &TestEventStorage{})
 
 	eventDispatcher.RegisterHandler((&AccountCreatedEvent{}).GetName(), &TestEventHandler{})
 
@@ -72,7 +72,7 @@ func TestLedger_CreateAccount(t *testing.T) {
 //
 func TestLedger_TransferValue(t *testing.T) {
 	eventDispatcher := events.DomainDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher, &events.InMemoryEventStorage{})
+	ledger := Ledger{}.New(eventDispatcher, &TestEventStorage{})
 
 	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestEventHandler{})
 
@@ -102,7 +102,7 @@ func TestLedger_TransferValue(t *testing.T) {
 //
 func TestLedger_AddValue(t *testing.T) {
 	eventDispatcher := events.DomainDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher, &events.InMemoryEventStorage{})
+	ledger := Ledger{}.New(eventDispatcher, &TestEventStorage{})
 
 	eventDispatcher.RegisterHandler((&AccountValueAddedEvent{}).GetName(), &TestEventHandler{})
 
@@ -145,7 +145,7 @@ func TestLedger_AddValue(t *testing.T) {
 //
 func TestLedger_SubtractValue(t *testing.T) {
 	eventDispatcher := events.DomainDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher, &events.InMemoryEventStorage{})
+	ledger := Ledger{}.New(eventDispatcher, &TestEventStorage{})
 
 	eventDispatcher.RegisterHandler((&AccountValueSubtractedEvent{}).GetName(), &TestEventHandler{})
 
@@ -180,9 +180,8 @@ func TestLedger_SubtractValue(t *testing.T) {
 //
 //
 func TestLedger_LoadAccount(t *testing.T) {
-	storage := &TestEventStorage{}
-	ledger := Ledger{}.New(events.DomainDispatcher{}.GetInstance(), storage)
-
+	ledger := Ledger{}.New(events.DomainDispatcher{}.GetInstance(), &TestEventStorage{})
+	storage := ledger.accountRepository.eventStorage
 	accountId := uuid.NewV4()
 
 	// negative test when first event is not AccountCreatedEvent
@@ -191,13 +190,13 @@ func TestLedger_LoadAccount(t *testing.T) {
 		value:     Money{}.NewFromInt(1000000, "EUR"), // 10,000.00 EUR
 		reason:    "initial",
 	})
-	assert.Len(t, ledger.eventStorage.(*TestEventStorage).events, 1)
+	assert.Len(t, storage.(*TestEventStorage).events, 1)
 
 	_, err := ledger.LoadAccount(accountId)
 	assert.IsType(t, &AccountCreatedEventNotFoundError{}, err)
 
 	// positive test
-	storage.events = []events.Event{} // clear old events
+	storage.(*TestEventStorage).events = []events.Event{} // clear old events
 
 	storage.AddEvent(&AccountCreatedEvent{
 		accountId:    accountId,
@@ -245,12 +244,12 @@ func TestLedger_LoadAccount(t *testing.T) {
 		reason: "birthday",
 	})
 
-	assert.Len(t, ledger.eventStorage.(*TestEventStorage).events, 8)
+	assert.Len(t, storage.(*TestEventStorage).events, 8)
 
 	// test history for account
 	history := []events.Event{}
 
-	for event := range ledger.getHistoryFor(accountId) {
+	for event := range ledger.accountRepository.getHistoryFor(accountId) {
 		history = append(history, event)
 	}
 	assert.Len(t, history, 6)
