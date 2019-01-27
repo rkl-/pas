@@ -50,8 +50,8 @@ func (s *TestEventStorage) GetEventStream() chan events.Event {
 //
 //
 func TestLedger_CreateAccount(t *testing.T) {
-	eventDispatcher := events.DomainDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher, &TestEventStorage{})
+	eventDispatcher := events.DomainDispatcher{}.New()
+	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
 
 	eventDispatcher.RegisterHandler((&AccountCreatedEvent{}).GetName(), &TestEventHandler{})
 
@@ -71,8 +71,8 @@ func TestLedger_CreateAccount(t *testing.T) {
 //
 //
 func TestLedger_TransferValue(t *testing.T) {
-	eventDispatcher := events.DomainDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher, &TestEventStorage{})
+	eventDispatcher := events.DomainDispatcher{}.New()
+	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
 
 	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestEventHandler{})
 
@@ -101,8 +101,8 @@ func TestLedger_TransferValue(t *testing.T) {
 //
 //
 func TestLedger_AddValue(t *testing.T) {
-	eventDispatcher := events.DomainDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher, &TestEventStorage{})
+	eventDispatcher := events.DomainDispatcher{}.New()
+	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
 
 	eventDispatcher.RegisterHandler((&AccountValueAddedEvent{}).GetName(), &TestEventHandler{})
 
@@ -144,8 +144,8 @@ func TestLedger_AddValue(t *testing.T) {
 //
 //
 func TestLedger_SubtractValue(t *testing.T) {
-	eventDispatcher := events.DomainDispatcher{}.GetInstance()
-	ledger := Ledger{}.New(eventDispatcher, &TestEventStorage{})
+	eventDispatcher := events.DomainDispatcher{}.New()
+	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
 
 	eventDispatcher.RegisterHandler((&AccountValueSubtractedEvent{}).GetName(), &TestEventHandler{})
 
@@ -180,8 +180,9 @@ func TestLedger_SubtractValue(t *testing.T) {
 //
 //
 func TestLedger_LoadAccount(t *testing.T) {
-	ledger := Ledger{}.New(events.DomainDispatcher{}.GetInstance(), &TestEventStorage{})
-	storage := ledger.accountRepository.eventStorage
+	ledger := DefaultLedger{}.New(events.DomainDispatcher{}.New(), &TestEventStorage{})
+	defaultLedger := ledger.(*DefaultLedger)
+	storage := defaultLedger.accountRepository.eventStorage
 	accountId := uuid.NewV4()
 
 	// negative test when first event is not AccountCreatedEvent
@@ -192,7 +193,7 @@ func TestLedger_LoadAccount(t *testing.T) {
 	})
 	assert.Len(t, storage.(*TestEventStorage).events, 1)
 
-	_, err := ledger.LoadAccount(accountId)
+	_, err := defaultLedger.LoadAccount(accountId)
 	assert.IsType(t, &AccountCreatedEventNotFoundError{}, err)
 
 	// positive test
@@ -249,16 +250,45 @@ func TestLedger_LoadAccount(t *testing.T) {
 	// test history for account
 	history := []events.Event{}
 
-	for event := range ledger.accountRepository.getHistoryFor(accountId) {
+	for event := range defaultLedger.accountRepository.getHistoryFor(accountId) {
 		history = append(history, event)
 	}
 	assert.Len(t, history, 6)
 
 	// try to load
-	account, err := ledger.LoadAccount(accountId)
+	account, err := defaultLedger.LoadAccount(accountId)
 	assert.Nil(t, err)
 	assert.Equal(t, accountId, account.id)
 	assert.Equal(t, "Test Account", account.title)
 	fmt.Printf("%s\n", account.balance.amount.String())
 	assert.Equal(t, Money{}.NewFromInt(1520000, "EUR"), account.balance)
+}
+
+// TestLedger_HasAccount
+//
+//
+func TestLedger_HasAccount(t *testing.T) {
+	// prepare defaultLedger
+	ledger := DefaultLedger{}.New(events.DomainDispatcher{}.New(), &TestEventStorage{})
+	defaultLedger := ledger.(*DefaultLedger)
+
+	// test for non existing account
+	{
+		assert.False(t, defaultLedger.HasAccount(uuid.NewV4()))
+	}
+
+	// test for existing account
+	{
+		// prepare test account
+		storage := defaultLedger.accountRepository.eventStorage
+		accountId := uuid.NewV4()
+
+		storage.AddEvent(&AccountCreatedEvent{
+			accountId:    accountId,
+			accountTitle: "Test Account",
+			currencyId:   "EUR",
+		})
+
+		assert.True(t, defaultLedger.HasAccount(accountId))
+	}
 }

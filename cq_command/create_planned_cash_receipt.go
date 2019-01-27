@@ -4,6 +4,7 @@ import (
 	"github.com/satori/go.uuid"
 	"pas/accounting"
 	"pas/cq"
+	"pas/events"
 	"time"
 )
 
@@ -40,6 +41,8 @@ func (c *CreatePlannedCashReceiptCommand) GetRequestId() string {
 //
 //
 type CreatePlannedCashReceiptCommandHandler struct {
+	ledger     accounting.Ledger
+	dispatcher events.EventDispatcher
 }
 
 func (h *CreatePlannedCashReceiptCommandHandler) Handle(request cq.Request) (interface{}, error) {
@@ -48,11 +51,13 @@ func (h *CreatePlannedCashReceiptCommandHandler) Handle(request cq.Request) (int
 		return nil, &cq.UnsupportedRequestError{}
 	}
 
-	command = command
+	if time.Now().After(command.date) {
+		return nil, &DateInPastError{}
+	}
 
-	//if time.Now().After(command.date) {
-	//	return nil, &DateInPastError{}
-	//}
+	if !h.ledger.HasAccount(command.bookingAccountId) {
+		return nil, &AccountNotFoundError{command.bookingAccountId}
+	}
 
 	return nil, nil
 }

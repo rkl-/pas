@@ -21,25 +21,11 @@ func (h *testEventHandler) Handle(event Event) {
 	testEventHandlerExecuted = true
 }
 
-// TestEventDispatcher_GetInstance
-//
-//
-func TestEventDispatcher_GetInstance(t *testing.T) {
-	dispatcher01 := DomainDispatcher{}.GetInstance()
-	dispatcher01.RegisterHandler("event.test", &testEventHandler{})
-
-	dispatcher02 := DomainDispatcher{}.GetInstance()
-
-	assert.Equal(t, dispatcher01, dispatcher02)
-}
-
 // TestEventDispatcher_RegisterHandler
 //
 //
 func TestEventDispatcher_RegisterHandler(t *testing.T) {
-	eventDispatcherInstance = nil
-
-	dispatcher := DomainDispatcher{}.GetInstance()
+	dispatcher := DomainDispatcher{}.New()
 	dispatcher.RegisterHandler("event.test", &testEventHandler{})
 
 	domainDispatcher, ok := dispatcher.(*DomainDispatcher)
@@ -61,9 +47,7 @@ func TestEventDispatcher_RegisterHandler(t *testing.T) {
 //
 //
 func TestEventDispatcher_Dispatch(t *testing.T) {
-	eventDispatcherInstance = nil
-
-	dispatcher := DomainDispatcher{}.GetInstance()
+	dispatcher := DomainDispatcher{}.New()
 	dispatcher.RegisterHandler("event.test", &testEventHandler{})
 
 	testEventHandlerExecuted = false

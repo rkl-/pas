@@ -12,6 +12,14 @@ type AccountRepository struct {
 	eventStorage events.EventStorage
 }
 
+func (r *AccountRepository) hasAccount(id uuid.UUID) bool {
+	for range r.getHistoryFor(id) {
+		return true
+	}
+
+	return false
+}
+
 func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 	account := &Account{id: id}
 

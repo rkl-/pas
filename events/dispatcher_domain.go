@@ -1,7 +1,5 @@
 package events
 
-var eventDispatcherInstance *DomainDispatcher
-
 // DomainDispatcher accounting event dispatcher
 //
 //
@@ -9,19 +7,15 @@ type DomainDispatcher struct {
 	handlers map[string][]EventHandler
 }
 
-// GetInstance creates new event dispatcher
+// New creates new event dispatcher
 //
 //
-func (d DomainDispatcher) GetInstance() EventDispatcher {
-	if eventDispatcherInstance == nil {
-		ed := &DomainDispatcher{
-			handlers: map[string][]EventHandler{},
-		}
-
-		eventDispatcherInstance = ed
+func (d DomainDispatcher) New() EventDispatcher {
+	dd := &DomainDispatcher{
+		handlers: map[string][]EventHandler{},
 	}
 
-	return eventDispatcherInstance
+	return dd
 }
 
 // RegisterHandler register an event handler
