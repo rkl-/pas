@@ -2,28 +2,6 @@ package events
 
 var eventDispatcherInstance *DomainDispatcher
 
-// Event event interface
-//
-//
-type Event interface {
-	GetName() string
-}
-
-// EventHandler interface for event subscriber
-//
-//
-type EventHandler interface {
-	Handle(event Event)
-}
-
-// EventDispatcher event dispatcher
-//
-//
-type EventDispatcher interface {
-	RegisterHandler(eventName string, handler EventHandler)
-	Dispatch(event Event)
-}
-
 // DomainDispatcher accounting event dispatcher
 //
 //

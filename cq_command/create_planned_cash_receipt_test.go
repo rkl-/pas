@@ -1,4 +1,4 @@
-package cq
+package cq_command
 
 import (
 	"testing"

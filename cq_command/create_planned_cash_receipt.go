@@ -1,8 +1,9 @@
-package cq
+package cq_command
 
 import (
 	"github.com/satori/go.uuid"
 	"pas/accounting"
+	"pas/cq"
 	"time"
 )
 
@@ -41,10 +42,10 @@ func (c *CreatePlannedCashReceiptCommand) GetRequestId() string {
 type CreatePlannedCashReceiptCommandHandler struct {
 }
 
-func (h *CreatePlannedCashReceiptCommandHandler) Handle(request Request) (interface{}, error) {
+func (h *CreatePlannedCashReceiptCommandHandler) Handle(request cq.Request) (interface{}, error) {
 	command, ok := request.(*CreatePlannedCashReceiptCommand)
 	if !ok {
-		return nil, &UnsupportedRequestError{}
+		return nil, &cq.UnsupportedRequestError{}
 	}
 
 	command = command

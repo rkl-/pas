@@ -2,24 +2,6 @@ package cq
 
 import "strings"
 
-var commandBusInstance *CommandBus
-
-// CommandBus command bus
-//
-//
-type CommandBus struct {
-	genericRequestBus
-}
-
-func (b CommandBus) GetInstance() *CommandBus {
-	if commandBusInstance == nil {
-		commandBusInstance = &CommandBus{}
-		commandBusInstance.genericRequestBus.handlerPrefix = "command."
-	}
-
-	return commandBusInstance
-}
-
 // Request any kind of request
 //
 //
