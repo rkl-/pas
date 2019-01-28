@@ -9,7 +9,7 @@ type Ledger interface {
 	// CreateAccount create a new account in ledger.
 	//
 	//
-	CreateAccount(title, currencyId string) *Account
+	CreateAccount(title, currencyId string) (*Account, error)
 
 	// TransferValue transfer value from one account to another.
 	//
@@ -35,4 +35,9 @@ type Ledger interface {
 	//
 	//
 	LoadAccount(accountId uuid.UUID) (*Account, error)
+
+	// AddPlannedCashReceipt add a planned cash receipt to an account
+	//
+	//
+	AddPlannedCashReceipt(account *Account, receipt *PlannedCashReceipt) error
 }

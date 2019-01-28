@@ -20,6 +20,21 @@ func (r *AccountRepository) hasAccount(id uuid.UUID) bool {
 	return false
 }
 
+func (r *AccountRepository) save(account *Account) error {
+	if account.recordedEvents == nil {
+		return nil
+	}
+
+	for _, event := range account.recordedEvents {
+		r.eventStorage.AddEvent(event)
+	}
+
+	// reset events
+	account.recordedEvents = []events.Event{}
+
+	return nil
+}
+
 func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 	account := &Account{id: id}
 

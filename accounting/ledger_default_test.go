@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"pas/events"
 	"testing"
+	"time"
 )
 
 var currentEvent events.Event
@@ -55,7 +56,7 @@ func TestLedger_CreateAccount(t *testing.T) {
 
 	eventDispatcher.RegisterHandler((&AccountCreatedEvent{}).GetName(), &TestEventHandler{})
 
-	acc := ledger.CreateAccount("Yet another Bitcoin account", "BTC")
+	acc, _ := ledger.CreateAccount("Yet another Bitcoin account", "BTC")
 	assert.True(t, len(acc.id) == 16)
 	assert.Equal(t, acc.title, "Yet another Bitcoin account")
 
@@ -77,10 +78,10 @@ func TestLedger_TransferValue(t *testing.T) {
 	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestEventHandler{})
 
 	// positive test
-	fromAccount := ledger.CreateAccount("fromId account", "EUR")
+	fromAccount, _ := ledger.CreateAccount("fromId account", "EUR")
 	fromAccount.balance = Money{}.NewFromInt(100000, "EUR") // 1000.00 EUR
 
-	toAccount := ledger.CreateAccount("toId account", "EUR")
+	toAccount, _ := ledger.CreateAccount("toId account", "EUR")
 	toAccount.balance = Money{}.NewFromInt(50000, "EUR") // 500.00 EUR
 
 	transferValue := Money{}.NewFromInt(10000, "EUR")
@@ -107,7 +108,7 @@ func TestLedger_AddValue(t *testing.T) {
 	eventDispatcher.RegisterHandler((&AccountValueAddedEvent{}).GetName(), &TestEventHandler{})
 
 	// negative test with unequal currencies
-	acc := ledger.CreateAccount("test account", "USD")
+	acc, _ := ledger.CreateAccount("test account", "USD")
 	wrongValue := Money{}.NewFromInt(1000, "EUR") // 10.00 EUR
 
 	err := ledger.AddValue(acc, wrongValue, "yehaaa")
@@ -150,7 +151,7 @@ func TestLedger_SubtractValue(t *testing.T) {
 	eventDispatcher.RegisterHandler((&AccountValueSubtractedEvent{}).GetName(), &TestEventHandler{})
 
 	// negative test #1 (unequal currencies)
-	acc := ledger.CreateAccount("test account", "USD")
+	acc, _ := ledger.CreateAccount("test account", "USD")
 	err := ledger.SubtractValue(acc, Money{}.NewFromInt(1000, "EUR"), "just for fun") // 10.00 EUR
 	assert.IsType(t, &UnequalCurrenciesError{}, err)
 
@@ -290,5 +291,46 @@ func TestLedger_HasAccount(t *testing.T) {
 		})
 
 		assert.True(t, defaultLedger.HasAccount(accountId))
+	}
+}
+
+// TestDefaultLedger_AddPlannedCashReceipt
+//
+//
+func TestDefaultLedger_AddPlannedCashReceipt(t *testing.T) {
+	// prepare defaultLedger
+	ledger := DefaultLedger{}.New(events.DomainDispatcher{}.New(), &TestEventStorage{})
+	defaultLedger := ledger.(*DefaultLedger)
+
+	// prepare test account
+	acc, _ := defaultLedger.CreateAccount("Test account", "BTC")
+	assert.Nil(t, acc.plannedCashReceipts)
+
+	// prepare some base details
+	date := (time.Now()).Add(24 * time.Hour)
+	title := "test receipt"
+
+	// negative test with wrong currency
+	{
+		amount := Money{}.NewFromInt(100000, "EUR") // 1,000.00 EUR
+		receipt := PlannedCashReceipt{}.New(date, amount, title)
+
+		err := ledger.AddPlannedCashReceipt(acc, receipt)
+		assert.IsType(t, &UnequalCurrenciesError{}, err)
+	}
+
+	// positive test with correct currency
+	{
+		amount := Money{}.NewFromInt(100000000, "BTC") // 1 BTC
+		receipt := PlannedCashReceipt{}.New(date, amount, title)
+
+		err := ledger.AddPlannedCashReceipt(acc, receipt)
+		assert.Nil(t, err)
+		assert.Len(t, acc.plannedCashReceipts, 1)
+
+		accReceipt := acc.plannedCashReceipts[0]
+		assert.Equal(t, date, accReceipt.date)
+		assert.Equal(t, title, accReceipt.title)
+		assert.Equal(t, amount, accReceipt.amount)
 	}
 }

@@ -33,23 +33,31 @@ func (l DefaultLedger) New(eventDispatcher events.EventDispatcher, eventStorage 
 // CreateAccount create a new ledger account and dispatch AccountCreatedEvent
 //
 //
-func (l *DefaultLedger) CreateAccount(title, currencyId string) *Account {
+func (l *DefaultLedger) CreateAccount(title, currencyId string) (*Account, error) {
 	a := &Account{
 		id:      uuid.NewV4(),
 		title:   title,
 		balance: Money{}.NewFromInt(0, currencyId),
 	}
 
-	l.eventDispatcher.Dispatch(&AccountCreatedEvent{
+	event := &AccountCreatedEvent{
 		accountId:    a.id,
 		accountTitle: title,
 		currencyId:   currencyId,
-	})
+	}
 
-	return a
+	a.addRecordedEvent(event)
+
+	if err := l.accountRepository.save(a); err != nil {
+		return nil, err
+	}
+
+	l.eventDispatcher.Dispatch(event)
+
+	return a, nil
 }
 
-// TransferValue transfer value fromId one accountId toId another
+// TransferValue transfer value fromId one AccountId toId another
 //
 //
 func (l *DefaultLedger) TransferValue(fromAccount, toAccount *Account, value Money, reason string) error {
@@ -80,6 +88,8 @@ func (l *DefaultLedger) TransferValue(fromAccount, toAccount *Account, value Mon
 	fromAccount.balance = newFromBalance
 	toAccount.balance = newToBalance
 
+	// TODO save account and test for load!
+
 	l.eventDispatcher.Dispatch(&AccountValueTransferredEvent{
 		fromId: fromAccount.id,
 		toId:   toAccount.id,
@@ -98,6 +108,8 @@ func (l *DefaultLedger) AddValue(account *Account, value Money, reason string) e
 		return err
 	}
 
+	// TODO save account and test for load!
+
 	l.eventDispatcher.Dispatch(&AccountValueAddedEvent{
 		accountId: account.id,
 		value:     value,
@@ -115,11 +127,33 @@ func (l *DefaultLedger) SubtractValue(account *Account, value Money, reason stri
 		return err
 	}
 
+	// TODO save account and test for load!
+
 	l.eventDispatcher.Dispatch(&AccountValueSubtractedEvent{
 		accountId: account.id,
 		value:     value,
 		reason:    reason,
 	})
+
+	return nil
+}
+
+// AddPlannedCashReceipt add a planned cash receipt to an account
+//
+//
+func (l *DefaultLedger) AddPlannedCashReceipt(account *Account, receipt *PlannedCashReceipt) error {
+	if err := account.addPlannedCashReceipt(receipt); err != nil {
+		return err
+	}
+
+	// TODO save account and test for load!
+
+	l.eventDispatcher.Dispatch(PlannedCashReceiptCreatedEvent{}.New(
+		account.GetId(),
+		receipt.date,
+		receipt.amount,
+		receipt.title,
+	))
 
 	return nil
 }

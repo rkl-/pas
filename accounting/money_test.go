@@ -40,7 +40,7 @@ func TestMoney_NewFromString(t *testing.T) {
 	testInvalidAmount := "foo-bar-what-ever"
 	testMoney, err = Money{}.NewFromString(testInvalidAmount, testCurrency)
 	assert.IsType(t, &MoneyAmountFromStringError{}, err)
-	assert.Equal(t, fmt.Sprintf("cannot set 'money.amount' from '%s'", testInvalidAmount), err.Error())
+	assert.Equal(t, fmt.Sprintf("cannot set 'money.Amount' from '%s'", testInvalidAmount), err.Error())
 }
 
 // TestMoney_IsLowerThan
