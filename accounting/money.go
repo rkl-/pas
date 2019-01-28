@@ -17,7 +17,7 @@ type MoneyAmountFromStringError struct {
 //
 //
 func (e MoneyAmountFromStringError) Error() string {
-	return fmt.Sprintf("cannot set 'money.amount' from '%s'", e.invalidString)
+	return fmt.Sprintf("cannot set 'money.Amount' from '%s'", e.invalidString)
 }
 
 // Money money value object
@@ -62,7 +62,7 @@ func (m Money) GetCurrencyId() string {
 	return m.currencyId
 }
 
-// Mondey.GetAmount return money amount
+// Mondey.GetAmount return money Amount
 //
 //
 func (m Money) GetAmount() *big.Int {

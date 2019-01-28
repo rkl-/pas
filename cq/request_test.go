@@ -33,49 +33,51 @@ func (h *testRequestHandler) Handle(request Request) (interface{}, error) {
 //
 //
 func TestCommandBus_RegisterHandler(t *testing.T) {
-	// get command bus instance
-	bus := CommandBus{}.GetInstance()
+	// get command cmdBus instance
+	bus := CommandBus{}.New()
+
+	cmdBus := bus.(*CommandBus)
 
 	// negative test for InvalidHandlerIdError
-	bus.handlers = map[string]RequestHandler{
+	cmdBus.handlers = map[string]RequestHandler{
 		"test-handler-id": nil,
 	}
 
-	err := bus.RegisterHandler("test-handler-id", nil)
+	err := cmdBus.RegisterHandler("test-handler-id", nil)
 	assert.IsType(t, &InvalidHandlerIdError{}, err)
 
 	// negative test for HandlerAlreadyRegisteredError
-	bus.handlers = map[string]RequestHandler{
+	cmdBus.handlers = map[string]RequestHandler{
 		"command.test-handler-id": nil,
 	}
 
-	err = bus.RegisterHandler("command.test-handler-id", nil)
+	err = cmdBus.RegisterHandler("command.test-handler-id", nil)
 	assert.IsType(t, &HandlerAlreadyRegisteredError{}, err)
 
 	// positive test
-	err = bus.RegisterHandler("command.test_command", &testRequestHandler{})
+	err = cmdBus.RegisterHandler("command.test_command", &testRequestHandler{})
 	assert.Nil(t, err)
-	assert.Len(t, bus.handlers, 2)
+	assert.Len(t, cmdBus.handlers, 2)
 }
 
 // TestGenericRequestBus_Execute
 //
 //
 func TestGenericRequestBus_Execute(t *testing.T) {
-	// get command bus instance
-	bus := CommandBus{}.GetInstance()
+	// get command cmdBus instance
+	cmdBus := CommandBus{}.New()
 
-	err := bus.RegisterHandler("command.registered_test_command", &testRequestHandler{})
+	err := cmdBus.RegisterHandler("command.registered_test_command", &testRequestHandler{})
 	assert.Nil(t, err)
 
 	// negative test for RequestHandlerNotRegisteredError
-	_, err = bus.Execute(&unregisteredTestCommand{})
+	_, err = cmdBus.Execute(&unregisteredTestCommand{})
 	assert.IsType(t, &RequestHandlerNotRegisteredError{}, err)
 
 	// positive test
 	command := &registeredTestCommand{"test-value"}
 
-	res, err := bus.Execute(command)
+	res, err := cmdBus.Execute(command)
 	assert.Nil(t, err)
 
 	strRes, ok := res.(string)

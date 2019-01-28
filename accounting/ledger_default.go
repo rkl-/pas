@@ -6,23 +6,23 @@ import (
 	"pas/events"
 )
 
-// Ledger ledger for accounting
+// DefaultLedger ledger for accounting
 //
 //
-type Ledger struct {
+type DefaultLedger struct {
 	eventDispatcher   events.EventDispatcher
 	accountRepository *AccountRepository
 }
 
-// GetInstance create new ledger instance
+// New create new ledger instance
 //
 //
-func (l Ledger) New(eventDispatcher events.EventDispatcher, eventStorage events.EventStorage) *Ledger {
+func (l DefaultLedger) New(eventDispatcher events.EventDispatcher, eventStorage events.EventStorage) Ledger {
 	if eventDispatcher == nil {
 		panic("event dispatcher is required")
 	}
 
-	le := &Ledger{
+	le := &DefaultLedger{
 		eventDispatcher:   eventDispatcher,
 		accountRepository: &AccountRepository{eventStorage},
 	}
@@ -33,26 +33,34 @@ func (l Ledger) New(eventDispatcher events.EventDispatcher, eventStorage events.
 // CreateAccount create a new ledger account and dispatch AccountCreatedEvent
 //
 //
-func (l *Ledger) CreateAccount(title, currencyId string) *Account {
+func (l *DefaultLedger) CreateAccount(title, currencyId string) (*Account, error) {
 	a := &Account{
 		id:      uuid.NewV4(),
 		title:   title,
 		balance: Money{}.NewFromInt(0, currencyId),
 	}
 
-	l.eventDispatcher.Dispatch(&AccountCreatedEvent{
+	event := &AccountCreatedEvent{
 		accountId:    a.id,
 		accountTitle: title,
 		currencyId:   currencyId,
-	})
+	}
 
-	return a
+	a.addRecordedEvent(event)
+
+	if err := l.accountRepository.save(a); err != nil {
+		return nil, err
+	}
+
+	l.eventDispatcher.Dispatch(event)
+
+	return a, nil
 }
 
-// TransferValue transfer value fromId one accountId toId another
+// TransferValue transfer value fromId one AccountId toId another
 //
 //
-func (l *Ledger) TransferValue(fromAccount, toAccount *Account, value Money, reason string) error {
+func (l *DefaultLedger) TransferValue(fromAccount, toAccount *Account, value Money, reason string) error {
 	ok, err := fromAccount.balance.IsLowerThan(value)
 	if err != nil {
 		return err
@@ -80,6 +88,8 @@ func (l *Ledger) TransferValue(fromAccount, toAccount *Account, value Money, rea
 	fromAccount.balance = newFromBalance
 	toAccount.balance = newToBalance
 
+	// TODO save account and test for load!
+
 	l.eventDispatcher.Dispatch(&AccountValueTransferredEvent{
 		fromId: fromAccount.id,
 		toId:   toAccount.id,
@@ -93,10 +103,12 @@ func (l *Ledger) TransferValue(fromAccount, toAccount *Account, value Money, rea
 // AddValue add new value to an account and dispatch AccountValueAddedEvent
 //
 //
-func (l *Ledger) AddValue(account *Account, value Money, reason string) error {
+func (l *DefaultLedger) AddValue(account *Account, value Money, reason string) error {
 	if err := account.addValue(value, reason); err != nil {
 		return err
 	}
+
+	// TODO save account and test for load!
 
 	l.eventDispatcher.Dispatch(&AccountValueAddedEvent{
 		accountId: account.id,
@@ -110,10 +122,12 @@ func (l *Ledger) AddValue(account *Account, value Money, reason string) error {
 // SubtractValue subtract value from an account and dispatch AccountValueSubtractedEvent
 //
 //
-func (l *Ledger) SubtractValue(account *Account, value Money, reason string) error {
+func (l *DefaultLedger) SubtractValue(account *Account, value Money, reason string) error {
 	if err := account.subtractValue(value, reason); err != nil {
 		return err
 	}
+
+	// TODO save account and test for load!
 
 	l.eventDispatcher.Dispatch(&AccountValueSubtractedEvent{
 		accountId: account.id,
@@ -124,9 +138,36 @@ func (l *Ledger) SubtractValue(account *Account, value Money, reason string) err
 	return nil
 }
 
+// AddPlannedCashReceipt add a planned cash receipt to an account
+//
+//
+func (l *DefaultLedger) AddPlannedCashReceipt(account *Account, receipt *PlannedCashReceipt) error {
+	if err := account.addPlannedCashReceipt(receipt); err != nil {
+		return err
+	}
+
+	// TODO save account and test for load!
+
+	l.eventDispatcher.Dispatch(PlannedCashReceiptCreatedEvent{}.New(
+		account.GetId(),
+		receipt.date,
+		receipt.amount,
+		receipt.title,
+	))
+
+	return nil
+}
+
+// HasAccount efficient way to check if an account exists or not.
+//
+//
+func (l *DefaultLedger) HasAccount(accountId uuid.UUID) bool {
+	return l.accountRepository.hasAccount(accountId)
+}
+
 // LoadAccount an account by id
 //
 //
-func (l *Ledger) LoadAccount(accountId uuid.UUID) (*Account, error) {
+func (l *DefaultLedger) LoadAccount(accountId uuid.UUID) (*Account, error) {
 	return l.accountRepository.loadById(accountId)
 }
