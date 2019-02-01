@@ -88,14 +88,20 @@ func (l *DefaultLedger) TransferValue(fromAccount, toAccount *Account, value Mon
 	fromAccount.balance = newFromBalance
 	toAccount.balance = newToBalance
 
-	// TODO save account and test for load!
-
-	l.eventDispatcher.Dispatch(&AccountValueTransferredEvent{
+	event := &AccountValueTransferredEvent{
 		fromId: fromAccount.id,
 		toId:   toAccount.id,
 		value:  value,
 		reason: reason,
-	})
+	}
+
+	fromAccount.addRecordedEvent(event)
+
+	if err := l.accountRepository.save(fromAccount); err != nil {
+		return err
+	}
+
+	l.eventDispatcher.Dispatch(event)
 
 	return nil
 }
@@ -108,13 +114,19 @@ func (l *DefaultLedger) AddValue(account *Account, value Money, reason string) e
 		return err
 	}
 
-	// TODO save account and test for load!
-
-	l.eventDispatcher.Dispatch(&AccountValueAddedEvent{
+	event := &AccountValueAddedEvent{
 		accountId: account.id,
 		value:     value,
 		reason:    reason,
-	})
+	}
+
+	account.addRecordedEvent(event)
+
+	if err := l.accountRepository.save(account); err != nil {
+		return err
+	}
+
+	l.eventDispatcher.Dispatch(event)
 
 	return nil
 }
@@ -127,13 +139,19 @@ func (l *DefaultLedger) SubtractValue(account *Account, value Money, reason stri
 		return err
 	}
 
-	// TODO save account and test for load!
-
-	l.eventDispatcher.Dispatch(&AccountValueSubtractedEvent{
+	event := &AccountValueSubtractedEvent{
 		accountId: account.id,
 		value:     value,
 		reason:    reason,
-	})
+	}
+
+	account.addRecordedEvent(event)
+
+	if err := l.accountRepository.save(account); err != nil {
+		return err
+	}
+
+	l.eventDispatcher.Dispatch(event)
 
 	return nil
 }
@@ -146,14 +164,20 @@ func (l *DefaultLedger) AddPlannedCashReceipt(account *Account, receipt *Planned
 		return err
 	}
 
-	// TODO save account and test for load!
-
-	l.eventDispatcher.Dispatch(PlannedCashReceiptCreatedEvent{}.New(
+	event := PlannedCashReceiptCreatedEvent{}.New(
 		account.GetId(),
 		receipt.date,
 		receipt.amount,
 		receipt.title,
-	))
+	)
+
+	account.addRecordedEvent(event)
+
+	if err := l.accountRepository.save(account); err != nil {
+		return err
+	}
+
+	l.eventDispatcher.Dispatch(event)
 
 	return nil
 }

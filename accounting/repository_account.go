@@ -84,6 +84,21 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 			break
 
 		//
+		// PlannedCashReceiptCreatedEvent
+		//
+		case *PlannedCashReceiptCreatedEvent:
+			date := event.(*PlannedCashReceiptCreatedEvent).Date
+			amount := event.(*PlannedCashReceiptCreatedEvent).Amount
+			title := event.(*PlannedCashReceiptCreatedEvent).Title
+
+			plannedReceipt := PlannedCashReceipt{}.New(date, amount, title)
+			if err := account.addPlannedCashReceipt(plannedReceipt); err != nil {
+				return nil, err
+			}
+
+			break
+
+		//
 		// AccountValueTransferredEvent
 		//
 		case *AccountValueTransferredEvent:
