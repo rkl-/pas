@@ -22,6 +22,18 @@ func (a *Account) GetId() uuid.UUID {
 	return a.id
 }
 
+func (a *Account) GetTitle() string {
+	return a.title
+}
+
+func (a *Account) GetCurrencyId() string {
+	return a.balance.currencyId
+}
+
+func (a *Account) GetBalance() Money {
+	return a.balance
+}
+
 func (a *Account) addRecordedEvent(event events.Event) {
 	if a.recordedEvents == nil {
 		a.recordedEvents = []events.Event{}

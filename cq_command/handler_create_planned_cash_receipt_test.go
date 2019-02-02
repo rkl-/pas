@@ -10,21 +10,6 @@ import (
 	"time"
 )
 
-type unsupportedCommand struct {
-}
-
-func (c *unsupportedCommand) GetRequestId() string {
-	return "command.create_planned_cash_receipt"
-}
-
-type testEventHandler struct {
-	dynamicHandle func(event events.Event)
-}
-
-func (h *testEventHandler) Handle(event events.Event) {
-	h.dynamicHandle(event)
-}
-
 // TestCreatePlannedCashReceiptCommandHandler_Handle
 //
 //
@@ -39,7 +24,12 @@ func TestCreatePlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 
 	// prepare command bus
 	cmdBus := cq.CommandBus{}.New()
-	err := cmdBus.RegisterHandler("command.create_planned_cash_receipt", &CreatePlannedCashReceiptCommandHandler{
+	err := cmdBus.RegisterHandler("command.unsupported_command", &CreatePlannedCashReceiptCommandHandler{
+		ledger: ledger,
+	})
+	assert.Nil(t, err)
+
+	err = cmdBus.RegisterHandler("command.create_planned_cash_receipt", &CreatePlannedCashReceiptCommandHandler{
 		ledger: ledger,
 	})
 	assert.Nil(t, err)
