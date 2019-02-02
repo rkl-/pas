@@ -2,7 +2,7 @@ package accounting
 
 import "github.com/satori/go.uuid"
 
-// AccountValueAddedEvent event when new value was added to an AccountId
+// AccountValueAddedEvent event when new value was added to an account
 //
 //
 type AccountValueAddedEvent struct {

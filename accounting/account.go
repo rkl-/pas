@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Account a ledger AccountId
+// Account a ledger account
 //
 //
 type Account struct {

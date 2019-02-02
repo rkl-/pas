@@ -2,7 +2,7 @@ package accounting
 
 import "github.com/satori/go.uuid"
 
-// AccountCreatedEvent event when an AccountId was created
+// AccountCreatedEvent event when an account was created
 //
 //
 type AccountCreatedEvent struct {

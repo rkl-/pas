@@ -57,7 +57,7 @@ func (l *DefaultLedger) CreateAccount(title, currencyId string) (*Account, error
 	return a, nil
 }
 
-// TransferValue transfer value fromId one AccountId toId another
+// TransferValue transfer value from one Account to another
 //
 //
 func (l *DefaultLedger) TransferValue(fromAccount, toAccount *Account, value Money, reason string) error {

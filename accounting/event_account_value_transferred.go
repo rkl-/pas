@@ -2,7 +2,7 @@ package accounting
 
 import "github.com/satori/go.uuid"
 
-// AccountValueTransferredEvent event when value was transferred fromId one AccountId toId another
+// AccountValueTransferredEvent event when value was transferred from one account to another
 //
 //
 type AccountValueTransferredEvent struct {
