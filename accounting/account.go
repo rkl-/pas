@@ -11,11 +11,12 @@ import (
 //
 //
 type Account struct {
-	id                  uuid.UUID
-	title               string
-	balance             Money
-	plannedCashReceipts []*PlannedCashReceipt
-	recordedEvents      []events.Event
+	id                     uuid.UUID
+	title                  string
+	balance                Money
+	plannedCashReceipts    []*PlannedCashFlow
+	plannedCashWithdrawals []*PlannedCashFlow
+	recordedEvents         []events.Event
 }
 
 func (a *Account) GetId() uuid.UUID {
@@ -82,18 +83,26 @@ func (a *Account) subtractValue(value Money, reason string) error {
 	return nil
 }
 
-func (a *Account) addPlannedCashReceipt(receipt *PlannedCashReceipt) error {
-	amount := receipt.amount
+func (a *Account) addPlannedCashFlow(cashFlow *PlannedCashFlow, target *[]*PlannedCashFlow) error {
+	amount := cashFlow.amount
 
 	if strings.Compare(a.balance.currencyId, amount.currencyId) != 0 {
 		return &UnequalCurrenciesError{}
 	}
 
-	if a.plannedCashReceipts == nil {
-		a.plannedCashReceipts = []*PlannedCashReceipt{}
+	if *target == nil {
+		*target = []*PlannedCashFlow{}
 	}
 
-	a.plannedCashReceipts = append(a.plannedCashReceipts, receipt)
+	*target = append(*target, cashFlow)
 
 	return nil
+}
+
+func (a *Account) addPlannedCashReceipt(receipt *PlannedCashFlow) error {
+	return a.addPlannedCashFlow(receipt, &a.plannedCashReceipts)
+}
+
+func (a *Account) addPlannedCashWithdrawal(withdrawal *PlannedCashFlow) error {
+	return a.addPlannedCashFlow(withdrawal, &a.plannedCashWithdrawals)
 }

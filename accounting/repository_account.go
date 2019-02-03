@@ -91,8 +91,23 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 			amount := event.(*PlannedCashReceiptCreatedEvent).Amount
 			title := event.(*PlannedCashReceiptCreatedEvent).Title
 
-			plannedReceipt := PlannedCashReceipt{}.New(date, amount, title)
+			plannedReceipt := PlannedCashFlow{}.New(date, amount, title)
 			if err := account.addPlannedCashReceipt(plannedReceipt); err != nil {
+				return nil, err
+			}
+
+			break
+
+		//
+		// PlannedCashWithdrawalCreatedEvent
+		//
+		case *PlannedCashWithdrawalCreatedEvent:
+			date := event.(*PlannedCashWithdrawalCreatedEvent).Date
+			amount := event.(*PlannedCashWithdrawalCreatedEvent).Amount
+			title := event.(*PlannedCashWithdrawalCreatedEvent).Title
+
+			plannedWithdrawal := PlannedCashFlow{}.New(date, amount, title)
+			if err := account.addPlannedCashWithdrawal(plannedWithdrawal); err != nil {
 				return nil, err
 			}
 

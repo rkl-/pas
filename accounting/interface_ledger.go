@@ -39,5 +39,10 @@ type Ledger interface {
 	// AddPlannedCashReceipt add a planned cash receipt to an account
 	//
 	//
-	AddPlannedCashReceipt(account *Account, receipt *PlannedCashReceipt) error
+	AddPlannedCashReceipt(account *Account, receipt *PlannedCashFlow) error
+
+	// AddPlannedCashWithdrawal add a planned cash withdrawal to an account
+	//
+	//
+	AddPlannedCashWithdrawal(account *Account, withdrawal *PlannedCashFlow) error
 }

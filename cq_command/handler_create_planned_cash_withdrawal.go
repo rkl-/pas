@@ -6,15 +6,15 @@ import (
 	"time"
 )
 
-// CreatePlannedCashReceiptCommandHandler handler for CreatePlannedCashReceiptCommand
+// CreatePlannedCashWithdrawalCommandHandler handler for CreatePlannedCashWithdrawalCommand
 //
 //
-type CreatePlannedCashReceiptCommandHandler struct {
+type CreatePlannedCashWithdrawalCommandHandler struct {
 	ledger accounting.Ledger
 }
 
-func (h *CreatePlannedCashReceiptCommandHandler) Handle(request cq.Request) (interface{}, error) {
-	command, ok := request.(*CreatePlannedCashReceiptCommand)
+func (h *CreatePlannedCashWithdrawalCommandHandler) Handle(request cq.Request) (interface{}, error) {
+	command, ok := request.(*CreatePlannedCashWithdrawalCommand)
 	if !ok {
 		return nil, &cq.UnsupportedRequestError{}
 	}
@@ -27,14 +27,14 @@ func (h *CreatePlannedCashReceiptCommandHandler) Handle(request cq.Request) (int
 		return nil, &AccountNotFoundError{command.bookingAccountId}
 	}
 
-	cashReceipt := accounting.PlannedCashFlow{}.New(command.date, command.amount, command.title)
+	cashWithdrawal := accounting.PlannedCashFlow{}.New(command.date, command.amount, command.title)
 
 	acc, err := h.ledger.LoadAccount(command.bookingAccountId)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := h.ledger.AddPlannedCashReceipt(acc, cashReceipt); err != nil {
+	if err := h.ledger.AddPlannedCashWithdrawal(acc, cashWithdrawal); err != nil {
 		return nil, err
 	}
 

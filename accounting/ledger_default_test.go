@@ -399,7 +399,7 @@ func TestDefaultLedger_AddPlannedCashReceipt(t *testing.T) {
 	// negative test with wrong currency
 	{
 		amount := Money{}.NewFromInt(100000, "EUR") // 1,000.00 EUR
-		receipt := PlannedCashReceipt{}.New(date, amount, title)
+		receipt := PlannedCashFlow{}.New(date, amount, title)
 
 		err := ledger.AddPlannedCashReceipt(acc, receipt)
 		assert.IsType(t, &UnequalCurrenciesError{}, err)
@@ -408,7 +408,7 @@ func TestDefaultLedger_AddPlannedCashReceipt(t *testing.T) {
 	// positive test with correct currency
 	{
 		amount := Money{}.NewFromInt(100000000, "BTC") // 1 BTC
-		receipt := PlannedCashReceipt{}.New(date, amount, title)
+		receipt := PlannedCashFlow{}.New(date, amount, title)
 
 		err := ledger.AddPlannedCashReceipt(acc, receipt)
 		assert.Nil(t, err)
@@ -428,5 +428,56 @@ func TestDefaultLedger_AddPlannedCashReceipt(t *testing.T) {
 		assert.True(t, acc.balance.IsEqual(reloadedAccount.balance))
 		assert.Equal(t, acc.title, reloadedAccount.title)
 		assert.Equal(t, acc.plannedCashReceipts, reloadedAccount.plannedCashReceipts)
+	}
+}
+
+// TestDefaultLedger_AddPlannedCashWithdrawal
+//
+//
+func TestDefaultLedger_AddPlannedCashWithdrawal(t *testing.T) {
+	// prepare defaultLedger
+	ledger := DefaultLedger{}.New(events.DomainDispatcher{}.New(), &TestEventStorage{})
+	defaultLedger := ledger.(*DefaultLedger)
+
+	// prepare test account
+	acc, _ := defaultLedger.CreateAccount("Test account", "BTC")
+	assert.Nil(t, acc.plannedCashWithdrawals)
+
+	// prepare some base details
+	date := (time.Now()).Add(24 * time.Hour)
+	title := "test withdrawal"
+
+	// negative test with wrong currency
+	{
+		amount := Money{}.NewFromInt(100000, "EUR") // 1,000.00 EUR
+		withdrawal := PlannedCashFlow{}.New(date, amount, title)
+
+		err := ledger.AddPlannedCashWithdrawal(acc, withdrawal)
+		assert.IsType(t, &UnequalCurrenciesError{}, err)
+	}
+
+	// positive test with correct currency
+	{
+		amount := Money{}.NewFromInt(100000000, "BTC") // 1 BTC
+		withdrawal := PlannedCashFlow{}.New(date, amount, title)
+
+		err := ledger.AddPlannedCashWithdrawal(acc, withdrawal)
+		assert.Nil(t, err)
+		assert.Len(t, acc.plannedCashWithdrawals, 1)
+
+		accWithdrawal := acc.plannedCashWithdrawals[0]
+		assert.Equal(t, date, accWithdrawal.date)
+		assert.Equal(t, title, accWithdrawal.title)
+		assert.Equal(t, amount, accWithdrawal.amount)
+	}
+
+	// load account from ledger
+	{
+		reloadedAccount, err := ledger.LoadAccount(acc.GetId())
+		assert.IsType(t, &Account{}, reloadedAccount)
+		assert.Nil(t, err)
+		assert.True(t, acc.balance.IsEqual(reloadedAccount.balance))
+		assert.Equal(t, acc.title, reloadedAccount.title)
+		assert.Equal(t, acc.plannedCashWithdrawals, reloadedAccount.plannedCashWithdrawals)
 	}
 }
