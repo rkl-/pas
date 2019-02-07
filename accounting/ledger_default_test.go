@@ -72,80 +72,75 @@ func TestLedger_CreateAccount(t *testing.T) {
 //
 //
 func TestLedger_TransferValue(t *testing.T) {
+	// prepare ledger and dispatcher
 	eventDispatcher := events.DomainDispatcher{}.New()
-	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
-
 	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestEventHandler{})
 
-	// negative test for InsufficientFoundsError
+	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
+
+	// our test accounts
+	var fromAccount *Account
+	var toAccount *Account
+
+	// prepare accounts
 	{
-		fromAccount, _ := ledger.CreateAccount("fromId account", "EUR")
-		fromAccount.balance = Money{}.NewFromInt(100, "EUR") // 1.00 EUR
+		from, err := ledger.CreateAccount("From Account", "EUR")
+		to, err := ledger.CreateAccount("To Account", "EUR")
+		assert.Nil(t, err)
 
-		toAccount, _ := ledger.CreateAccount("toId account", "EUR")
-		toAccount.balance = Money{}.NewFromInt(50000, "EUR") // 500.00 EUR
+		err = ledger.AddValue(from.GetId(), Money{}.NewFromInt(100000, "EUR"), "1000 EUR")
+		err = ledger.AddValue(to.GetId(), Money{}.NewFromInt(500000, "EUR"), "5000 EUR")
+		assert.Nil(t, err)
 
-		transferValue := Money{}.NewFromInt(10000, "EUR")
-		err := ledger.TransferValue(fromAccount, toAccount, transferValue, "foobar") // 100.00 EUR
+		fromAccount, _ = ledger.LoadAccount(from.GetId())
+		toAccount, _ = ledger.LoadAccount(to.GetId())
+	}
+
+	// account not found error (fromAccount)
+	{
+		err := ledger.TransferValue(uuid.NewV4(), toAccount.GetId(), Money{}.NewFromInt(1, "EUR"), "")
+		assert.IsType(t, &AccountNotFoundError{}, err)
+	}
+
+	// account not found error (toAccount)
+	{
+		err := ledger.TransferValue(fromAccount.GetId(), uuid.NewV4(), Money{}.NewFromInt(1, "EUR"), "")
+		assert.IsType(t, &AccountNotFoundError{}, err)
+	}
+
+	// InsufficientFoundsError
+	{
+		value := Money{}.NewFromInt(100100, "EUR")
+		err := ledger.TransferValue(fromAccount.GetId(), toAccount.GetId(), value, "foobar")
 		assert.IsType(t, &InsufficientFoundsError{}, err)
 	}
 
-	// positive test for expected AccountValueTransferredEvent event
+	// UnequalCurrenciesError
 	{
-		fromAccount, _ := ledger.CreateAccount("fromId account", "EUR")
-		fromAccount.balance = Money{}.NewFromInt(100000, "EUR") // 1000.00 EUR
-
-		toAccount, _ := ledger.CreateAccount("toId account", "EUR")
-		toAccount.balance = Money{}.NewFromInt(50000, "EUR") // 500.00 EUR
-
-		transferValue := Money{}.NewFromInt(10000, "EUR")
-		err := ledger.TransferValue(fromAccount, toAccount, transferValue, "foobar") // 100.00 EUR
-		assert.Nil(t, err)
-		assert.True(t, fromAccount.balance.IsEqual(Money{}.NewFromInt(90000, "EUR"))) // 900.00 EUR
-		assert.True(t, toAccount.balance.IsEqual(Money{}.NewFromInt(60000, "EUR")))   // 600.00 EUR
-
-		// event validation
-		assert.IsType(t, &AccountValueTransferredEvent{}, currentEvent)
-		assert.Equal(t, fromAccount.id, currentEvent.(*AccountValueTransferredEvent).fromId)
-		assert.Equal(t, toAccount.id, currentEvent.(*AccountValueTransferredEvent).toId)
-		assert.Equal(t, transferValue, currentEvent.(*AccountValueTransferredEvent).value)
-		assert.Equal(t, "foobar", currentEvent.(*AccountValueTransferredEvent).reason)
+		value := Money{}.NewFromInt(99999, "USD")
+		err := ledger.TransferValue(fromAccount.GetId(), toAccount.GetId(), value, "foobar")
+		assert.IsType(t, &UnequalCurrenciesError{}, err)
 	}
 
-	// positive test with account reload
+	// valid transfer
 	{
-		ledger = DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
-
-		fromAccount, _ := ledger.CreateAccount("fromId account", "EUR")
-		err := ledger.AddValue(fromAccount, Money{}.NewFromInt(100000, "EUR"), "no special 1") // 1000.00 EUR
+		value := Money{}.NewFromInt(99999, "EUR")
+		err := ledger.TransferValue(fromAccount.GetId(), toAccount.GetId(), value, "foobar")
 		assert.Nil(t, err)
 
-		toAccount, _ := ledger.CreateAccount("toId account", "EUR")
-		err = ledger.AddValue(toAccount, Money{}.NewFromInt(50000, "EUR"), "no special 2") // 500.00 EUR
-		assert.Nil(t, err)
-
-		transferValue := Money{}.NewFromInt(10000, "EUR")
-		err = ledger.TransferValue(fromAccount, toAccount, transferValue, "foobar") // 100.00 EUR
-		assert.Nil(t, err)
-
-		// test fromAccount
+		// check new balances
 		{
-			reloadedFromAccount, err := ledger.LoadAccount(fromAccount.GetId())
-			assert.Nil(t, err)
-			assert.IsType(t, &Account{}, reloadedFromAccount)
-			assert.True(t, fromAccount.balance.IsEqual(reloadedFromAccount.balance))
-			assert.Equal(t, fromAccount.title, reloadedFromAccount.title)
-			assert.Equal(t, fromAccount.plannedCashReceipts, reloadedFromAccount.plannedCashReceipts)
-		}
+			from, _ := ledger.LoadAccount(fromAccount.GetId())
+			to, _ := ledger.LoadAccount(toAccount.GetId())
 
-		// test toAccount
-		{
-			reloadedToAccount, err := ledger.LoadAccount(toAccount.GetId())
-			assert.Nil(t, err)
-			assert.IsType(t, &Account{}, reloadedToAccount)
-			assert.True(t, toAccount.balance.IsEqual(reloadedToAccount.balance))
-			assert.Equal(t, toAccount.title, reloadedToAccount.title)
-			assert.Equal(t, toAccount.plannedCashReceipts, reloadedToAccount.plannedCashReceipts)
+			expectedFrom := Money{}.NewFromInt(1, "EUR")
+			expectedTo := Money{}.NewFromInt(599999, "EUR")
+
+			assert.True(t, from.GetBalance().IsEqual(expectedFrom))
+			assert.True(t, to.GetBalance().IsEqual(expectedTo))
+
+			// check dispatched event
+			assert.IsType(t, &AccountValueTransferredEvent{}, currentEvent)
 		}
 	}
 }
@@ -165,17 +160,25 @@ func TestLedger_AddValue(t *testing.T) {
 	{
 		wrongValue := Money{}.NewFromInt(1000, "EUR") // 10.00 EUR
 
-		err := ledger.AddValue(acc, wrongValue, "yehaaa")
+		err := ledger.AddValue(acc.GetId(), wrongValue, "yehaaa")
 		assert.IsType(t, &UnequalCurrenciesError{}, err)
+	}
+
+	// account not found test
+	{
+		_, err := ledger.LoadAccount(uuid.NewV4())
+		assert.IsType(t, &AccountNotFoundError{}, err)
 	}
 
 	// positive test #1
 	{
 		goodValue := Money{}.NewFromInt(500, "USD") // 5.00 USD
 
-		err := ledger.AddValue(acc, goodValue, "second try")
+		err := ledger.AddValue(acc.GetId(), goodValue, "second try")
 		assert.Nil(t, err)
-		assert.Equal(t, acc.balance, goodValue)
+
+		acc, _ = ledger.LoadAccount(acc.GetId())
+		assert.True(t, acc.GetBalance().IsEqual(goodValue))
 
 		// event validation
 		assert.IsType(t, &AccountValueAddedEvent{}, currentEvent)
@@ -188,9 +191,11 @@ func TestLedger_AddValue(t *testing.T) {
 	{
 		nextGoodValue := Money{}.NewFromInt(1000, "USD") // 10.00 USD
 
-		err := ledger.AddValue(acc, nextGoodValue, "third try")
+		err := ledger.AddValue(acc.GetId(), nextGoodValue, "third try")
 		assert.Nil(t, err)
-		assert.Equal(t, acc.balance, Money{}.NewFromInt(1500, "USD"))
+
+		acc, _ = ledger.LoadAccount(acc.GetId())
+		assert.True(t, acc.GetBalance().IsEqual(Money{}.NewFromInt(1500, "USD")))
 
 		// event validation
 		assert.IsType(t, &AccountValueAddedEvent{}, currentEvent)
@@ -223,26 +228,30 @@ func TestLedger_SubtractValue(t *testing.T) {
 
 	// negative test #1 (unequal currencies)
 	{
-		err := ledger.SubtractValue(acc, Money{}.NewFromInt(1000, "EUR"), "just for fun") // 10.00 EUR
+		err := ledger.SubtractValue(acc.GetId(), Money{}.NewFromInt(1000, "EUR"), "just for fun") // 10.00 EUR
 		assert.IsType(t, &UnequalCurrenciesError{}, err)
 	}
 
 	// negative test #2 (insufficient founds)
 	{
-		err := ledger.SubtractValue(acc, Money{}.NewFromInt(1, "USD"), "test it") // 0.01 USD
+		err := ledger.SubtractValue(acc.GetId(), Money{}.NewFromInt(1, "USD"), "test it") // 0.01 USD
 		assert.IsType(t, &InsufficientFoundsError{}, err)
 	}
 
 	// positive test
 	{
-		err := ledger.AddValue(acc, Money{}.NewFromInt(10000, "USD"), "initial") // 100.00 USD
+		err := ledger.AddValue(acc.GetId(), Money{}.NewFromInt(10000, "USD"), "initial") // 100.00 USD
 		assert.Nil(t, err)
 
+		acc, _ := ledger.LoadAccount(acc.GetId())
+
 		subValue := Money{}.NewFromInt(999, "USD")
-		err = ledger.SubtractValue(acc, subValue, "what ever") // 9.99 USD
+		err = ledger.SubtractValue(acc.GetId(), subValue, "what ever") // 9.99 USD
 		assert.Nil(t, err)
 
 		expectedValue := Money{}.NewFromInt(9001, "USD")
+
+		acc, _ = ledger.LoadAccount(acc.GetId())
 		assert.Equal(t, expectedValue, acc.balance)
 
 		// event validation
@@ -250,16 +259,6 @@ func TestLedger_SubtractValue(t *testing.T) {
 		assert.Equal(t, acc.id, currentEvent.(*AccountValueSubtractedEvent).accountId)
 		assert.Equal(t, subValue, currentEvent.(*AccountValueSubtractedEvent).value)
 		assert.Equal(t, "what ever", currentEvent.(*AccountValueSubtractedEvent).reason)
-	}
-
-	// load account from ledger
-	{
-		reloadedAccount, err := ledger.LoadAccount(acc.GetId())
-		assert.IsType(t, &Account{}, reloadedAccount)
-		assert.Nil(t, err)
-		assert.True(t, acc.balance.IsEqual(reloadedAccount.balance))
-		assert.Equal(t, acc.title, reloadedAccount.title)
-		assert.Equal(t, acc.plannedCashReceipts, reloadedAccount.plannedCashReceipts)
 	}
 }
 
@@ -351,35 +350,6 @@ func TestLedger_LoadAccount(t *testing.T) {
 	assert.Equal(t, Money{}.NewFromInt(1520000, "EUR"), account.balance)
 }
 
-// TestLedger_HasAccount
-//
-//
-func TestLedger_HasAccount(t *testing.T) {
-	// prepare defaultLedger
-	ledger := DefaultLedger{}.New(events.DomainDispatcher{}.New(), &TestEventStorage{})
-	defaultLedger := ledger.(*DefaultLedger)
-
-	// test for non existing account
-	{
-		assert.False(t, defaultLedger.HasAccount(uuid.NewV4()))
-	}
-
-	// test for existing account
-	{
-		// prepare test account
-		storage := defaultLedger.accountRepository.eventStorage
-		accountId := uuid.NewV4()
-
-		storage.AddEvent(&AccountCreatedEvent{
-			accountId:    accountId,
-			accountTitle: "Test Account",
-			currencyId:   "EUR",
-		})
-
-		assert.True(t, defaultLedger.HasAccount(accountId))
-	}
-}
-
 // TestDefaultLedger_AddPlannedCashReceipt
 //
 //
@@ -399,22 +369,24 @@ func TestDefaultLedger_AddPlannedCashReceipt(t *testing.T) {
 	// negative test with wrong currency
 	{
 		amount := Money{}.NewFromInt(100000, "EUR") // 1,000.00 EUR
-		receipt := PlannedCashFlow{}.New(date, amount, title)
+		receipt := PlannedCashFlow{}.New(acc.GetId(), date, amount, title)
 
-		err := ledger.AddPlannedCashReceipt(acc, receipt)
+		err := ledger.AddPlannedCashReceipt(acc.GetId(), receipt)
 		assert.IsType(t, &UnequalCurrenciesError{}, err)
 	}
 
 	// positive test with correct currency
 	{
 		amount := Money{}.NewFromInt(100000000, "BTC") // 1 BTC
-		receipt := PlannedCashFlow{}.New(date, amount, title)
+		receipt := PlannedCashFlow{}.New(acc.GetId(), date, amount, title)
 
-		err := ledger.AddPlannedCashReceipt(acc, receipt)
+		err := ledger.AddPlannedCashReceipt(acc.GetId(), receipt)
 		assert.Nil(t, err)
+
+		acc, _ = ledger.LoadAccount(acc.GetId())
 		assert.Len(t, acc.plannedCashReceipts, 1)
 
-		accReceipt := acc.plannedCashReceipts[0]
+		accReceipt := acc.plannedCashReceipts[receipt.GetId()]
 		assert.Equal(t, date, accReceipt.date)
 		assert.Equal(t, title, accReceipt.title)
 		assert.Equal(t, amount, accReceipt.amount)
@@ -450,22 +422,24 @@ func TestDefaultLedger_AddPlannedCashWithdrawal(t *testing.T) {
 	// negative test with wrong currency
 	{
 		amount := Money{}.NewFromInt(100000, "EUR") // 1,000.00 EUR
-		withdrawal := PlannedCashFlow{}.New(date, amount, title)
+		withdrawal := PlannedCashFlow{}.New(acc.GetId(), date, amount, title)
 
-		err := ledger.AddPlannedCashWithdrawal(acc, withdrawal)
+		err := ledger.AddPlannedCashWithdrawal(acc.GetId(), withdrawal)
 		assert.IsType(t, &UnequalCurrenciesError{}, err)
 	}
 
 	// positive test with correct currency
 	{
 		amount := Money{}.NewFromInt(100000000, "BTC") // 1 BTC
-		withdrawal := PlannedCashFlow{}.New(date, amount, title)
+		withdrawal := PlannedCashFlow{}.New(acc.GetId(), date, amount, title)
 
-		err := ledger.AddPlannedCashWithdrawal(acc, withdrawal)
+		err := ledger.AddPlannedCashWithdrawal(acc.GetId(), withdrawal)
 		assert.Nil(t, err)
+
+		acc, _ = ledger.LoadAccount(acc.GetId())
 		assert.Len(t, acc.plannedCashWithdrawals, 1)
 
-		accWithdrawal := acc.plannedCashWithdrawals[0]
+		accWithdrawal := acc.plannedCashWithdrawals[withdrawal.GetId()]
 		assert.Equal(t, date, accWithdrawal.date)
 		assert.Equal(t, title, accWithdrawal.title)
 		assert.Equal(t, amount, accWithdrawal.amount)

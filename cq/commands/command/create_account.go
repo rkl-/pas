@@ -1,17 +1,17 @@
-package cq_command
+package command
 
 // CreateAccountCommand create a new account
 //
 //
 type CreateAccountCommand struct {
-	title      string
-	currencyId string
+	Title      string
+	CurrencyId string
 }
 
 func (CreateAccountCommand) New(title, currencyId string) *CreateAccountCommand {
 	cmd := &CreateAccountCommand{
-		title:      title,
-		currencyId: currencyId,
+		Title:      title,
+		CurrencyId: currencyId,
 	}
 
 	return cmd

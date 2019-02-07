@@ -14,22 +14,17 @@ type Ledger interface {
 	// TransferValue transfer value from one account to another.
 	//
 	//
-	TransferValue(fromAccount, toAccount *Account, value Money, reason string) error
+	TransferValue(fromAccountId, toAccountId uuid.UUID, value Money, reason string) error
 
 	// AddValue add new value to an account
 	//
 	//
-	AddValue(account *Account, value Money, reason string) error
+	AddValue(accountId uuid.UUID, value Money, reason string) error
 
 	// SubtractValue subtract value from an account
 	//
 	//
-	SubtractValue(account *Account, value Money, reason string) error
-
-	// HasAccount efficient way to check if an account exists or not.
-	//
-	//
-	HasAccount(accountId uuid.UUID) bool
+	SubtractValue(accountId uuid.UUID, value Money, reason string) error
 
 	// LoadAccount an account by id
 	//
@@ -39,10 +34,15 @@ type Ledger interface {
 	// AddPlannedCashReceipt add a planned cash receipt to an account
 	//
 	//
-	AddPlannedCashReceipt(account *Account, receipt *PlannedCashFlow) error
+	AddPlannedCashReceipt(accountId uuid.UUID, receipt *PlannedCashFlow) error
+
+	// ConfirmPlannedCashReceipt confirm a planned cash receipt
+	//
+	//
+	ConfirmPlannedCashReceipt(accountId uuid.UUID, receiptId uuid.UUID) error
 
 	// AddPlannedCashWithdrawal add a planned cash withdrawal to an account
 	//
 	//
-	AddPlannedCashWithdrawal(account *Account, withdrawal *PlannedCashFlow) error
+	AddPlannedCashWithdrawal(accountId uuid.UUID, withdrawal *PlannedCashFlow) error
 }

@@ -1,4 +1,4 @@
-package cq_command
+package command
 
 import (
 	"github.com/satori/go.uuid"
@@ -18,10 +18,10 @@ func TestCreatePlannedCashWithdrawalCommand_New(t *testing.T) {
 	title := "FooBar Title"
 
 	pr := CreatePlannedCashWithdrawalCommand{}.New(accountId, date, value, title)
-	assert.Equal(t, accountId, pr.bookingAccountId)
-	assert.Equal(t, date, pr.date)
-	assert.Equal(t, value, pr.amount)
-	assert.Equal(t, title, pr.title)
+	assert.Equal(t, accountId, pr.BookingAccountId)
+	assert.Equal(t, date, pr.Date)
+	assert.Equal(t, value, pr.Amount)
+	assert.Equal(t, title, pr.Title)
 }
 
 // TestCreatePlannedCashWithdrawalCommand_GetRequestId

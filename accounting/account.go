@@ -14,8 +14,8 @@ type Account struct {
 	id                     uuid.UUID
 	title                  string
 	balance                Money
-	plannedCashReceipts    []*PlannedCashFlow
-	plannedCashWithdrawals []*PlannedCashFlow
+	plannedCashReceipts    PlannedCashFlowMap
+	plannedCashWithdrawals PlannedCashFlowMap
 	recordedEvents         []events.Event
 }
 
@@ -33,6 +33,10 @@ func (a *Account) GetCurrencyId() string {
 
 func (a *Account) GetBalance() Money {
 	return a.balance
+}
+
+func (a *Account) GetPlannedCashReceipts() PlannedCashFlowMap {
+	return a.plannedCashReceipts
 }
 
 func (a *Account) addRecordedEvent(event events.Event) {
@@ -83,7 +87,7 @@ func (a *Account) subtractValue(value Money, reason string) error {
 	return nil
 }
 
-func (a *Account) addPlannedCashFlow(cashFlow *PlannedCashFlow, target *[]*PlannedCashFlow) error {
+func (a *Account) addPlannedCashFlow(cashFlow *PlannedCashFlow, target *PlannedCashFlowMap) error {
 	amount := cashFlow.amount
 
 	if strings.Compare(a.balance.currencyId, amount.currencyId) != 0 {
@@ -91,10 +95,10 @@ func (a *Account) addPlannedCashFlow(cashFlow *PlannedCashFlow, target *[]*Plann
 	}
 
 	if *target == nil {
-		*target = []*PlannedCashFlow{}
+		*target = PlannedCashFlowMap{}
 	}
 
-	*target = append(*target, cashFlow)
+	(*target)[cashFlow.GetId()] = cashFlow
 
 	return nil
 }

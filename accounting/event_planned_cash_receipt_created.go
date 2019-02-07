@@ -9,18 +9,21 @@ import (
 //
 //
 type PlannedCashReceiptCreatedEvent struct {
+	ReceiptId uuid.UUID
 	AccountId uuid.UUID
 	Date      time.Time
 	Amount    Money
 	Title     string
 }
 
-func (PlannedCashReceiptCreatedEvent) New(
-	accountId uuid.UUID,
-	date time.Time,
-	amount Money,
-	title string) *PlannedCashReceiptCreatedEvent {
-	return &PlannedCashReceiptCreatedEvent{accountId, date, amount, title}
+func (PlannedCashReceiptCreatedEvent) NewFrom(flow *PlannedCashFlow) *PlannedCashReceiptCreatedEvent {
+	return &PlannedCashReceiptCreatedEvent{
+		ReceiptId: flow.GetId(),
+		AccountId: flow.accountId,
+		Date:      flow.date,
+		Amount:    flow.amount,
+		Title:     flow.title,
+	}
 }
 
 func (e *PlannedCashReceiptCreatedEvent) GetName() string {

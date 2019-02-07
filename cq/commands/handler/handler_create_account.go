@@ -1,8 +1,9 @@
-package cq_command
+package handler
 
 import (
 	"pas/accounting"
 	"pas/cq"
+	commandPkg "pas/cq/commands/command"
 )
 
 // CreateAccountCommandHandler
@@ -13,12 +14,12 @@ type CreateAccountCommandHandler struct {
 }
 
 func (c *CreateAccountCommandHandler) Handle(request cq.Request) (interface{}, error) {
-	command, ok := request.(*CreateAccountCommand)
+	command, ok := request.(*commandPkg.CreateAccountCommand)
 	if !ok {
 		return nil, &cq.UnsupportedRequestError{}
 	}
 
-	account, err := c.ledger.CreateAccount(command.title, command.currencyId)
+	account, err := c.ledger.CreateAccount(command.Title, command.CurrencyId)
 	if err != nil {
 		return nil, err
 	}

@@ -9,18 +9,21 @@ import (
 //
 //
 type PlannedCashWithdrawalCreatedEvent struct {
-	AccountId uuid.UUID
-	Date      time.Time
-	Amount    Money
-	Title     string
+	WithdrawalId uuid.UUID
+	AccountId    uuid.UUID
+	Date         time.Time
+	Amount       Money
+	Title        string
 }
 
-func (PlannedCashWithdrawalCreatedEvent) New(
-	accountId uuid.UUID,
-	date time.Time,
-	amount Money,
-	title string) *PlannedCashWithdrawalCreatedEvent {
-	return &PlannedCashWithdrawalCreatedEvent{accountId, date, amount, title}
+func (PlannedCashWithdrawalCreatedEvent) NewFrom(flow *PlannedCashFlow) *PlannedCashWithdrawalCreatedEvent {
+	return &PlannedCashWithdrawalCreatedEvent{
+		WithdrawalId: flow.GetId(),
+		AccountId:    flow.accountId,
+		Date:         flow.date,
+		Amount:       flow.amount,
+		Title:        flow.title,
+	}
 }
 
 func (e *PlannedCashWithdrawalCreatedEvent) GetName() string {

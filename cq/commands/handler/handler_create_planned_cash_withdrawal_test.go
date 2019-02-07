@@ -1,10 +1,11 @@
-package cq_command
+package handler
 
 import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"pas/accounting"
 	"pas/cq"
+	commandPkg "pas/cq/commands/command"
 	"pas/events"
 	"testing"
 	"time"
@@ -44,7 +45,7 @@ func TestCreatePlannedCashWithdrawalCommandHandler_Handle(t *testing.T) {
 	{
 		pastDate := (time.Now()).Add(time.Duration(-1) * time.Second)
 
-		command := CreatePlannedCashWithdrawalCommand{}.New(postBankAccount.GetId(), pastDate, expenseAmount, expenseTitle)
+		command := commandPkg.CreatePlannedCashWithdrawalCommand{}.New(postBankAccount.GetId(), pastDate, expenseAmount, expenseTitle)
 		_, err = cmdBus.Execute(command)
 		assert.IsType(t, &DateInPastError{}, err)
 	}
@@ -53,9 +54,9 @@ func TestCreatePlannedCashWithdrawalCommandHandler_Handle(t *testing.T) {
 	{
 		validDate := (time.Now()).Add(time.Duration(1) * time.Hour)
 
-		command := CreatePlannedCashWithdrawalCommand{}.New(uuid.NewV4(), validDate, expenseAmount, expenseTitle)
+		command := commandPkg.CreatePlannedCashWithdrawalCommand{}.New(uuid.NewV4(), validDate, expenseAmount, expenseTitle)
 		_, err = cmdBus.Execute(command)
-		assert.IsType(t, &AccountNotFoundError{}, err)
+		assert.IsType(t, &accounting.AccountNotFoundError{}, err)
 	}
 
 	// positive test
@@ -71,7 +72,7 @@ func TestCreatePlannedCashWithdrawalCommandHandler_Handle(t *testing.T) {
 
 		validDate := (time.Now()).Add(time.Duration(1) * time.Hour)
 
-		command := CreatePlannedCashWithdrawalCommand{}.New(postBankAccount.GetId(), validDate, expenseAmount, expenseTitle)
+		command := commandPkg.CreatePlannedCashWithdrawalCommand{}.New(postBankAccount.GetId(), validDate, expenseAmount, expenseTitle)
 		_, err = cmdBus.Execute(command)
 		assert.Nil(t, err)
 		assert.NotNil(t, catchedEvent)

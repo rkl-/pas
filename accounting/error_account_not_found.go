@@ -1,4 +1,4 @@
-package cq_command
+package accounting
 
 import (
 	"fmt"

@@ -12,14 +12,6 @@ type AccountRepository struct {
 	eventStorage events.EventStorage
 }
 
-func (r *AccountRepository) hasAccount(id uuid.UUID) bool {
-	for range r.getHistoryFor(id) {
-		return true
-	}
-
-	return false
-}
-
 func (r *AccountRepository) save(account *Account) error {
 	if account.recordedEvents == nil {
 		return nil
@@ -36,13 +28,17 @@ func (r *AccountRepository) save(account *Account) error {
 }
 
 func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
-	account := &Account{id: id}
+	var account *Account
 
 	// we need this to check if the AccountCreatedEvent event is
 	// the first one in the stream.
 	gotExpectedFirstEvent := false
 
 	for event := range r.getHistoryFor(id) {
+		if account == nil {
+			account = &Account{id: id}
+		}
+
 		if !gotExpectedFirstEvent {
 			if _, ok := event.(*AccountCreatedEvent); !ok {
 				return nil, &AccountCreatedEventNotFoundError{}
@@ -87,12 +83,24 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 		// PlannedCashReceiptCreatedEvent
 		//
 		case *PlannedCashReceiptCreatedEvent:
-			date := event.(*PlannedCashReceiptCreatedEvent).Date
-			amount := event.(*PlannedCashReceiptCreatedEvent).Amount
-			title := event.(*PlannedCashReceiptCreatedEvent).Title
-
-			plannedReceipt := PlannedCashFlow{}.New(date, amount, title)
+			plannedReceipt := &PlannedCashFlow{
+				id:        event.(*PlannedCashReceiptCreatedEvent).ReceiptId,
+				accountId: event.(*PlannedCashReceiptCreatedEvent).AccountId,
+				date:      event.(*PlannedCashReceiptCreatedEvent).Date,
+				amount:    event.(*PlannedCashReceiptCreatedEvent).Amount,
+				title:     event.(*PlannedCashReceiptCreatedEvent).Title,
+			}
 			if err := account.addPlannedCashReceipt(plannedReceipt); err != nil {
+				return nil, err
+			}
+
+			break
+
+		case *PlannedCashReceiptConfirmedEvent:
+			value := event.(*PlannedCashReceiptConfirmedEvent).Amount
+			reason := event.(*PlannedCashReceiptConfirmedEvent).Title
+
+			if err := account.addValue(value, reason); err != nil {
 				return nil, err
 			}
 
@@ -102,11 +110,13 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 		// PlannedCashWithdrawalCreatedEvent
 		//
 		case *PlannedCashWithdrawalCreatedEvent:
-			date := event.(*PlannedCashWithdrawalCreatedEvent).Date
-			amount := event.(*PlannedCashWithdrawalCreatedEvent).Amount
-			title := event.(*PlannedCashWithdrawalCreatedEvent).Title
-
-			plannedWithdrawal := PlannedCashFlow{}.New(date, amount, title)
+			plannedWithdrawal := &PlannedCashFlow{
+				id:        event.(*PlannedCashWithdrawalCreatedEvent).WithdrawalId,
+				accountId: event.(*PlannedCashWithdrawalCreatedEvent).AccountId,
+				date:      event.(*PlannedCashWithdrawalCreatedEvent).Date,
+				amount:    event.(*PlannedCashWithdrawalCreatedEvent).Amount,
+				title:     event.(*PlannedCashWithdrawalCreatedEvent).Title,
+			}
 			if err := account.addPlannedCashWithdrawal(plannedWithdrawal); err != nil {
 				return nil, err
 			}

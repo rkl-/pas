@@ -1,10 +1,11 @@
-package cq_command
+package handler
 
 import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"pas/accounting"
 	"pas/cq"
+	commandPkg "pas/cq/commands/command"
 	"pas/events"
 	"testing"
 )
@@ -40,7 +41,7 @@ func TestCreateAccountCommandHandler_Handle(t *testing.T) {
 		title := "My new test account"
 		currencyId := "BTC"
 
-		command := CreateAccountCommand{}.New(title, currencyId)
+		command := commandPkg.CreateAccountCommand{}.New(title, currencyId)
 
 		accountId, err := cmdBus.Execute(command)
 		assert.Nil(t, err)

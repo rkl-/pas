@@ -1,10 +1,11 @@
-package cq_command
+package handler
 
 import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"pas/accounting"
 	"pas/cq"
+	commandPkg "pas/cq/commands/command"
 	"pas/events"
 	"testing"
 	"time"
@@ -44,7 +45,7 @@ func TestCreatePlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 	{
 		pastDate := (time.Now()).Add(time.Duration(-1) * time.Second)
 
-		command := CreatePlannedCashReceiptCommand{}.New(postBankAccount.GetId(), pastDate, incomeAmount, incomeTitle)
+		command := commandPkg.CreatePlannedCashReceiptCommand{}.New(postBankAccount.GetId(), pastDate, incomeAmount, incomeTitle)
 		_, err = cmdBus.Execute(command)
 		assert.IsType(t, &DateInPastError{}, err)
 	}
@@ -53,9 +54,9 @@ func TestCreatePlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 	{
 		validDate := (time.Now()).Add(time.Duration(1) * time.Hour)
 
-		command := CreatePlannedCashReceiptCommand{}.New(uuid.NewV4(), validDate, incomeAmount, incomeTitle)
+		command := commandPkg.CreatePlannedCashReceiptCommand{}.New(uuid.NewV4(), validDate, incomeAmount, incomeTitle)
 		_, err = cmdBus.Execute(command)
-		assert.IsType(t, &AccountNotFoundError{}, err)
+		assert.IsType(t, &accounting.AccountNotFoundError{}, err)
 	}
 
 	// positive test
@@ -71,10 +72,12 @@ func TestCreatePlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 
 		validDate := (time.Now()).Add(time.Duration(1) * time.Hour)
 
-		command := CreatePlannedCashReceiptCommand{}.New(postBankAccount.GetId(), validDate, incomeAmount, incomeTitle)
-		_, err = cmdBus.Execute(command)
+		command := commandPkg.CreatePlannedCashReceiptCommand{}.New(postBankAccount.GetId(), validDate, incomeAmount, incomeTitle)
+		id, err := cmdBus.Execute(command)
 		assert.Nil(t, err)
+		assert.IsType(t, uuid.UUID{}, id)
 		assert.NotNil(t, catchedEvent)
+		assert.Equal(t, catchedEvent.ReceiptId, id)
 		assert.Equal(t, catchedEvent.AccountId, postBankAccount.GetId())
 		assert.Equal(t, catchedEvent.Title, incomeTitle)
 		assert.Equal(t, catchedEvent.Amount, incomeAmount)

@@ -52,7 +52,17 @@ func (l *DefaultLedger) CreateAccount(title, currencyId string) (*Account, error
 // TransferValue transfer value from one Account to another
 //
 //
-func (l *DefaultLedger) TransferValue(fromAccount, toAccount *Account, value Money, reason string) error {
+func (l *DefaultLedger) TransferValue(fromAccountId, toAccountId uuid.UUID, value Money, reason string) error {
+	fromAccount, err := l.LoadAccount(fromAccountId)
+	if err != nil {
+		return err
+	}
+
+	toAccount, err := l.LoadAccount(toAccountId)
+	if err != nil {
+		return err
+	}
+
 	ok, err := fromAccount.balance.IsLowerThan(value)
 	if err != nil {
 		return err
@@ -93,13 +103,18 @@ func (l *DefaultLedger) TransferValue(fromAccount, toAccount *Account, value Mon
 // AddValue add new value to an account and dispatch AccountValueAddedEvent
 //
 //
-func (l *DefaultLedger) AddValue(account *Account, value Money, reason string) error {
+func (l *DefaultLedger) AddValue(accountId uuid.UUID, value Money, reason string) error {
+	account, err := l.LoadAccount(accountId)
+	if err != nil {
+		return err
+	}
+
 	if err := account.addValue(value, reason); err != nil {
 		return err
 	}
 
 	event := &AccountValueAddedEvent{
-		accountId: account.id,
+		accountId: accountId,
 		value:     value,
 		reason:    reason,
 	}
@@ -110,13 +125,18 @@ func (l *DefaultLedger) AddValue(account *Account, value Money, reason string) e
 // SubtractValue subtract value from an account and dispatch AccountValueSubtractedEvent
 //
 //
-func (l *DefaultLedger) SubtractValue(account *Account, value Money, reason string) error {
+func (l *DefaultLedger) SubtractValue(accountId uuid.UUID, value Money, reason string) error {
+	account, err := l.LoadAccount(accountId)
+	if err != nil {
+		return err
+	}
+
 	if err := account.subtractValue(value, reason); err != nil {
 		return err
 	}
 
 	event := &AccountValueSubtractedEvent{
-		accountId: account.id,
+		accountId: accountId,
 		value:     value,
 		reason:    reason,
 	}
@@ -127,51 +147,83 @@ func (l *DefaultLedger) SubtractValue(account *Account, value Money, reason stri
 // AddPlannedCashReceipt add a planned cash receipt to an account
 //
 //
-func (l *DefaultLedger) AddPlannedCashReceipt(account *Account, receipt *PlannedCashFlow) error {
+func (l *DefaultLedger) AddPlannedCashReceipt(accountId uuid.UUID, receipt *PlannedCashFlow) error {
+	account, err := l.LoadAccount(accountId)
+	if err != nil {
+		return err
+	}
+
 	if err := account.addPlannedCashReceipt(receipt); err != nil {
 		return err
 	}
 
-	event := PlannedCashReceiptCreatedEvent{}.New(
-		account.GetId(),
-		receipt.date,
-		receipt.amount,
-		receipt.title,
-	)
+	event := PlannedCashReceiptCreatedEvent{}.NewFrom(receipt)
 
 	return l.addAndDispatchAccountEvent(account, event)
+}
+
+// ConfirmPlannedCashReceipt confirm a planned cash receipt
+//
+//
+func (l *DefaultLedger) ConfirmPlannedCashReceipt(accountId uuid.UUID, receiptId uuid.UUID) error {
+	account, err := l.LoadAccount(accountId)
+	if err != nil {
+		return err
+	}
+
+	flows := account.GetPlannedCashReceipts()
+	receipt, ok := flows[receiptId]
+	if !ok {
+		return &PlannedCashReceiptNotFoundError{receiptId, accountId}
+	}
+
+	if err := account.addValue(receipt.amount, receipt.title); err != nil {
+		return err
+	}
+
+	delete(account.plannedCashReceipts, receiptId)
+
+	event := PlannedCashReceiptConfirmedEvent{}.NewFrom(receipt)
+
+	if err := l.addAndDispatchAccountEvent(account, event); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // AddPlannedCashWithdrawal add a planned cash withdrawal to an account
 //
 //
-func (l *DefaultLedger) AddPlannedCashWithdrawal(account *Account, withdrawal *PlannedCashFlow) error {
+func (l *DefaultLedger) AddPlannedCashWithdrawal(accountId uuid.UUID, withdrawal *PlannedCashFlow) error {
+	account, err := l.LoadAccount(accountId)
+	if err != nil {
+		return err
+	}
+
 	if err := account.addPlannedCashWithdrawal(withdrawal); err != nil {
 		return err
 	}
 
-	event := PlannedCashWithdrawalCreatedEvent{}.New(
-		account.GetId(),
-		withdrawal.date,
-		withdrawal.amount,
-		withdrawal.title,
-	)
+	event := PlannedCashWithdrawalCreatedEvent{}.NewFrom(withdrawal)
 
 	return l.addAndDispatchAccountEvent(account, event)
-}
-
-// HasAccount efficient way to check if an account exists or not.
-//
-//
-func (l *DefaultLedger) HasAccount(accountId uuid.UUID) bool {
-	return l.accountRepository.hasAccount(accountId)
 }
 
 // LoadAccount an account by id
 //
 //
 func (l *DefaultLedger) LoadAccount(accountId uuid.UUID) (*Account, error) {
-	return l.accountRepository.loadById(accountId)
+	acc, err := l.accountRepository.loadById(accountId)
+	if err != nil {
+		return nil, err
+	}
+
+	if acc == nil {
+		return nil, &AccountNotFoundError{accountId}
+	}
+
+	return acc, nil
 }
 
 func (l *DefaultLedger) addAndDispatchAccountEvent(account *Account, event events.Event) error {

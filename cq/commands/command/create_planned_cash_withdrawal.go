@@ -1,4 +1,4 @@
-package cq_command
+package command
 
 import (
 	"github.com/satori/go.uuid"
@@ -10,10 +10,10 @@ import (
 //
 //
 type CreatePlannedCashWithdrawalCommand struct {
-	bookingAccountId uuid.UUID
-	date             time.Time
-	amount           accounting.Money
-	title            string
+	BookingAccountId uuid.UUID
+	Date             time.Time
+	Amount           accounting.Money
+	Title            string
 }
 
 func (c CreatePlannedCashWithdrawalCommand) New(
@@ -22,10 +22,10 @@ func (c CreatePlannedCashWithdrawalCommand) New(
 	amount accounting.Money,
 	title string) *CreatePlannedCashWithdrawalCommand {
 	cmd := &CreatePlannedCashWithdrawalCommand{
-		bookingAccountId: bookingAccountId,
-		date:             date,
-		amount:           amount,
-		title:            title,
+		BookingAccountId: bookingAccountId,
+		Date:             date,
+		Amount:           amount,
+		Title:            title,
 	}
 
 	return cmd
