@@ -47,10 +47,10 @@ func (s *TestEventStorage) GetEventStream() chan events.Event {
 	return ch
 }
 
-// TestLedger_CreateAccount
+// TestDefaultLedger_CreateAccount
 //
 //
-func TestLedger_CreateAccount(t *testing.T) {
+func TestDefaultLedger_CreateAccount(t *testing.T) {
 	eventDispatcher := events.DomainDispatcher{}.New()
 	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
 
@@ -68,10 +68,10 @@ func TestLedger_CreateAccount(t *testing.T) {
 	assert.Equal(t, "BTC", currentEvent.(*AccountCreatedEvent).currencyId)
 }
 
-// TestLedger_TransferValue
+// TestDefaultLedger_TransferValue
 //
 //
-func TestLedger_TransferValue(t *testing.T) {
+func TestDefaultLedger_TransferValue(t *testing.T) {
 	// prepare ledger and dispatcher
 	eventDispatcher := events.DomainDispatcher{}.New()
 	eventDispatcher.RegisterHandler((&AccountValueTransferredEvent{}).GetName(), &TestEventHandler{})
@@ -145,10 +145,10 @@ func TestLedger_TransferValue(t *testing.T) {
 	}
 }
 
-// TestLedger_AddValue
+// TestDefaultLedger_AddValue
 //
 //
-func TestLedger_AddValue(t *testing.T) {
+func TestDefaultLedger_AddValue(t *testing.T) {
 	eventDispatcher := events.DomainDispatcher{}.New()
 	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
 
@@ -215,10 +215,10 @@ func TestLedger_AddValue(t *testing.T) {
 	}
 }
 
-// TestLedger_SubtractValue
+// TestDefaultLedger_SubtractValue
 //
 //
-func TestLedger_SubtractValue(t *testing.T) {
+func TestDefaultLedger_SubtractValue(t *testing.T) {
 	eventDispatcher := events.DomainDispatcher{}.New()
 	ledger := DefaultLedger{}.New(eventDispatcher, &TestEventStorage{})
 
@@ -262,10 +262,10 @@ func TestLedger_SubtractValue(t *testing.T) {
 	}
 }
 
-// TestLedger_LoadAccount
+// TestDefaultLedger_LoadAccount
 //
 //
-func TestLedger_LoadAccount(t *testing.T) {
+func TestDefaultLedger_LoadAccount(t *testing.T) {
 	ledger := DefaultLedger{}.New(events.DomainDispatcher{}.New(), &TestEventStorage{})
 	defaultLedger := ledger.(*DefaultLedger)
 	storage := defaultLedger.accountRepository.eventStorage
@@ -453,5 +453,117 @@ func TestDefaultLedger_AddPlannedCashWithdrawal(t *testing.T) {
 		assert.True(t, acc.balance.IsEqual(reloadedAccount.balance))
 		assert.Equal(t, acc.title, reloadedAccount.title)
 		assert.Equal(t, acc.plannedCashWithdrawals, reloadedAccount.plannedCashWithdrawals)
+	}
+}
+
+// TestDefaultLedger_ConfirmPlannedCashReceipt
+//
+//
+func TestDefaultLedger_ConfirmPlannedCashReceipt(t *testing.T) {
+	// prepare defaultLedger
+	ledger := DefaultLedger{}.New(events.DomainDispatcher{}.New(), &TestEventStorage{})
+	defaultLedger := ledger.(*DefaultLedger)
+
+	// prepare test account
+	acc, _ := defaultLedger.CreateAccount("Test account", "EUR")
+	assert.Nil(t, acc.plannedCashWithdrawals)
+
+	// add some initial balance
+	initialBalance := Money{}.NewFromInt(10000, "EUR")
+	err := defaultLedger.AddValue(acc.GetId(), initialBalance, "initial")
+	assert.Nil(t, err)
+
+	// test PlannedCashReceiptNotFoundError
+	{
+		err := defaultLedger.ConfirmPlannedCashReceipt(acc.GetId(), uuid.NewV4())
+		assert.IsType(t, &PlannedCashReceiptNotFoundError{}, err)
+	}
+
+	// test confirmation
+	{
+		// add planned receipt
+		date := (time.Now()).Add(24 * time.Hour)
+		amount := Money{}.NewFromInt(100000, "EUR") // 1,000.00 EUR
+		plannedReceipt := PlannedCashFlow{}.New(acc.GetId(), date, amount, "test receipt")
+
+		err := defaultLedger.AddPlannedCashReceipt(acc.GetId(), plannedReceipt)
+		assert.Nil(t, err)
+
+		// reload account
+		acc, err = defaultLedger.LoadAccount(acc.GetId())
+		assert.Nil(t, err)
+		assert.NotNil(t, acc)
+
+		// check if initial balance did not changed already
+		assert.True(t, acc.GetBalance().IsEqual(initialBalance))
+
+		// confirm planned receipt
+		err = ledger.ConfirmPlannedCashReceipt(acc.GetId(), plannedReceipt.GetId())
+		assert.Nil(t, err)
+
+		// reload account
+		acc, err = defaultLedger.LoadAccount(acc.GetId())
+		assert.Nil(t, err)
+		assert.NotNil(t, acc)
+
+		// check new balance
+		expectedBalance := Money{}.NewFromInt(110000, "EUR")
+		assert.True(t, acc.GetBalance().IsEqual(expectedBalance))
+	}
+}
+
+// TestDefaultLedger_ConfirmPlannedCashWithdrawal
+//
+//
+func TestDefaultLedger_ConfirmPlannedCashWithdrawal(t *testing.T) {
+	// prepare defaultLedger
+	ledger := DefaultLedger{}.New(events.DomainDispatcher{}.New(), &TestEventStorage{})
+	defaultLedger := ledger.(*DefaultLedger)
+
+	// prepare test account
+	acc, _ := defaultLedger.CreateAccount("Test account", "EUR")
+	assert.Nil(t, acc.plannedCashWithdrawals)
+
+	// add some initial balance
+	initialBalance := Money{}.NewFromInt(100000000, "EUR")
+	err := defaultLedger.AddValue(acc.GetId(), initialBalance, "initial")
+	assert.Nil(t, err)
+
+	// test PlannedCashWithdrawalNotFoundError
+	{
+		err := defaultLedger.ConfirmPlannedCashWithdrawal(acc.GetId(), uuid.NewV4())
+		assert.IsType(t, &PlannedCashWithdrawalNotFoundError{}, err)
+	}
+
+	// test confirmation
+	{
+		// add planned withdrawal
+		date := (time.Now()).Add(24 * time.Hour)
+		amount := Money{}.NewFromInt(100000, "EUR") // 1,000.00 EUR
+		plannedWithdrawal := PlannedCashFlow{}.New(acc.GetId(), date, amount, "test withdrawal")
+
+		err := defaultLedger.AddPlannedCashWithdrawal(acc.GetId(), plannedWithdrawal)
+		assert.Nil(t, err)
+
+		// reload account
+		acc, err = defaultLedger.LoadAccount(acc.GetId())
+		assert.Nil(t, err)
+		assert.NotNil(t, acc)
+
+		// check if initial balance did not changed already
+		assert.True(t, acc.GetBalance().IsEqual(initialBalance))
+
+		// confirm planned withdrawal
+		err = ledger.ConfirmPlannedCashWithdrawal(acc.GetId(), plannedWithdrawal.GetId())
+		assert.Nil(t, err)
+
+		// reload account
+		acc, err = defaultLedger.LoadAccount(acc.GetId())
+		assert.Nil(t, err)
+		assert.NotNil(t, acc)
+
+		// check new balance
+		expectedBalance := Money{}.NewFromInt(99900000, "EUR")
+		assert.True(t, acc.GetBalance().IsEqual(expectedBalance))
 	}
 }
