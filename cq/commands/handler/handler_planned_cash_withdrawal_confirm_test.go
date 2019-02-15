@@ -4,9 +4,11 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"pas/accounting"
+	"pas/accounting/errors"
 	"pas/cq"
 	"pas/cq/commands/command"
 	"pas/events"
+	"pas/money"
 	"testing"
 	"time"
 )
@@ -56,7 +58,7 @@ func TestConfirmPlannedCashWithdrawalCommandHandler_Handle(t *testing.T) {
 	{
 		confirmCommand := command.ConfirmPlannedCashWithdrawalCommand{}.New(uuid.NewV4(), uuid.NewV4())
 		_, err := cmdBus.Execute(confirmCommand)
-		assert.IsType(t, &accounting.AccountNotFoundError{}, err)
+		assert.IsType(t, &errors.AccountNotFoundError{}, err)
 	}
 
 	// create test account
@@ -66,7 +68,7 @@ func TestConfirmPlannedCashWithdrawalCommandHandler_Handle(t *testing.T) {
 		assert.Nil(t, err)
 		assert.IsType(t, uuid.UUID{}, id)
 
-		err = ledger.AddValue(id.(uuid.UUID), accounting.Money{}.NewFromInt(100000, "EUR"), "initial")
+		err = ledger.AddValue(id.(uuid.UUID), money.Money{}.NewFromInt(100000, "EUR"), "initial")
 		assert.Nil(t, err)
 
 		accountId = id.(uuid.UUID)
@@ -77,7 +79,7 @@ func TestConfirmPlannedCashWithdrawalCommandHandler_Handle(t *testing.T) {
 		createPlannedCashWithdrawalCommand := command.CreatePlannedCashWithdrawalCommand{}.New(
 			accountId,
 			(time.Now()).Add(time.Duration(time.Second*5)),
-			accounting.Money{}.NewFromInt(10000, "EUR"), // 100.00 EUR
+			money.Money{}.NewFromInt(10000, "EUR"), // 100.00 EUR
 			"For testing only",
 		)
 
@@ -101,7 +103,7 @@ func TestConfirmPlannedCashWithdrawalCommandHandler_Handle(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, account)
 
-		expectedBalance := accounting.Money{}.NewFromInt(90000, "EUR")
+		expectedBalance := money.Money{}.NewFromInt(90000, "EUR")
 		assert.True(t, account.GetBalance().IsEqual(expectedBalance))
 	}
 }

@@ -1,4 +1,4 @@
-package accounting
+package errors
 
 // UnequalCurrenciesError
 //

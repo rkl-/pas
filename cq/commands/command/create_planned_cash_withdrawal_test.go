@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
-	"pas/accounting"
+	"pas/money"
 	"testing"
 	"time"
 )
@@ -14,7 +14,7 @@ import (
 func TestCreatePlannedCashWithdrawalCommand_New(t *testing.T) {
 	accountId := uuid.NewV4()
 	date := time.Now()
-	value := accounting.Money{}.NewFromInt(10000, "EUR") // 100.00 EUR
+	value := money.Money{}.NewFromInt(10000, "EUR") // 100.00 EUR
 	title := "FooBar Title"
 
 	pr := CreatePlannedCashWithdrawalCommand{}.New(accountId, date, value, title)

@@ -1,7 +1,9 @@
-package accounting
+package events
 
 import (
 	"github.com/satori/go.uuid"
+	"pas/accounting/structs"
+	"pas/money"
 	"time"
 )
 
@@ -12,17 +14,17 @@ type PlannedCashWithdrawalCreatedEvent struct {
 	WithdrawalId uuid.UUID
 	AccountId    uuid.UUID
 	Date         time.Time
-	Amount       Money
+	Amount       money.Money
 	Title        string
 }
 
-func (PlannedCashWithdrawalCreatedEvent) NewFrom(flow *PlannedCashFlow) *PlannedCashWithdrawalCreatedEvent {
+func (PlannedCashWithdrawalCreatedEvent) NewFrom(flow *structs.PlannedCashFlow) *PlannedCashWithdrawalCreatedEvent {
 	return &PlannedCashWithdrawalCreatedEvent{
 		WithdrawalId: flow.GetId(),
-		AccountId:    flow.accountId,
-		Date:         flow.date,
-		Amount:       flow.amount,
-		Title:        flow.title,
+		AccountId:    flow.AccountId,
+		Date:         flow.Date,
+		Amount:       flow.Amount,
+		Title:        flow.Title,
 	}
 }
 

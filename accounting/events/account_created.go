@@ -1,4 +1,4 @@
-package accounting
+package events
 
 import "github.com/satori/go.uuid"
 
@@ -6,9 +6,9 @@ import "github.com/satori/go.uuid"
 //
 //
 type AccountCreatedEvent struct {
-	accountId    uuid.UUID
-	accountTitle string
-	currencyId   string
+	AccountId    uuid.UUID
+	AccountTitle string
+	AurrencyId   string
 }
 
 func (e *AccountCreatedEvent) GetName() string {
@@ -16,5 +16,5 @@ func (e *AccountCreatedEvent) GetName() string {
 }
 
 func (e *AccountCreatedEvent) GetAccountId() uuid.UUID {
-	return e.accountId
+	return e.AccountId
 }

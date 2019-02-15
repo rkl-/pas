@@ -2,6 +2,7 @@ package handler
 
 import (
 	"pas/accounting"
+	"pas/accounting/structs"
 	"pas/cq"
 	commandPkg "pas/cq/commands/command"
 	"time"
@@ -24,7 +25,7 @@ func (h *CreatePlannedCashReceiptCommandHandler) Handle(request cq.Request) (int
 		return nil, &DateInPastError{}
 	}
 
-	cashReceipt := accounting.PlannedCashFlow{}.New(command.BookingAccountId, command.Date, command.Amount, command.Title)
+	cashReceipt := structs.PlannedCashFlow{}.New(command.BookingAccountId, command.Date, command.Amount, command.Title)
 
 	if err := h.ledger.AddPlannedCashReceipt(command.BookingAccountId, cashReceipt); err != nil {
 		return nil, err

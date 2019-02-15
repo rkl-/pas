@@ -1,8 +1,9 @@
-package accounting
+package money
 
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"pas/money/errors"
 	"testing"
 )
 
@@ -70,7 +71,7 @@ func TestMoney_IsLowerThan(t *testing.T) {
 	y = Money{}.NewFromInt(999, "USD") // 9.99 USD
 
 	_, err := x.IsLowerThan(y)
-	assert.IsType(t, &UnequalCurrenciesError{}, err)
+	assert.IsType(t, &errors.UnequalCurrenciesError{}, err)
 }
 
 // TestMoney_IsEqual

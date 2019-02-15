@@ -1,4 +1,4 @@
-package accounting
+package errors
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 //
 //
 type AccountNotFoundError struct {
-	accountId uuid.UUID
+	AccountId uuid.UUID
 }
 
 func (e *AccountNotFoundError) Error() string {
-	return fmt.Sprintf("Account with id \"%s\" was not found.", e.accountId.String())
+	return fmt.Sprintf("Account with Id \"%s\" was not found.", e.AccountId.String())
 }

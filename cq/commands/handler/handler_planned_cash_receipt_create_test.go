@@ -4,9 +4,12 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"pas/accounting"
+	"pas/accounting/errors"
+	events2 "pas/accounting/events"
 	"pas/cq"
 	commandPkg "pas/cq/commands/command"
 	"pas/events"
+	"pas/money"
 	"testing"
 	"time"
 )
@@ -20,7 +23,7 @@ func TestCreatePlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 	ledger := accounting.DefaultLedger{}.New(dispatcher, &events.InMemoryEventStorage{})
 	postBankAccount, _ := ledger.CreateAccount("Postbank", "EUR")
 
-	incomeAmount := accounting.Money{}.NewFromInt(1000000, "EUR") // 10,000.00 EUR
+	incomeAmount := money.Money{}.NewFromInt(1000000, "EUR") // 10,000.00 EUR
 	incomeTitle := "Salary"
 
 	// prepare command bus
@@ -56,19 +59,19 @@ func TestCreatePlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 
 		command := commandPkg.CreatePlannedCashReceiptCommand{}.New(uuid.NewV4(), validDate, incomeAmount, incomeTitle)
 		_, err = cmdBus.Execute(command)
-		assert.IsType(t, &accounting.AccountNotFoundError{}, err)
+		assert.IsType(t, &errors.AccountNotFoundError{}, err)
 	}
 
 	// positive test
 	{
-		var catchedEvent *accounting.PlannedCashReceiptCreatedEvent
+		var catchedEvent *events2.PlannedCashReceiptCreatedEvent
 
 		handler := &testEventHandler{}
 		handler.dynamicHandle = func(event events.Event) {
-			catchedEvent = event.(*accounting.PlannedCashReceiptCreatedEvent)
+			catchedEvent = event.(*events2.PlannedCashReceiptCreatedEvent)
 		}
 
-		dispatcher.RegisterHandler((&accounting.PlannedCashReceiptCreatedEvent{}).GetName(), handler)
+		dispatcher.RegisterHandler((&events2.PlannedCashReceiptCreatedEvent{}).GetName(), handler)
 
 		validDate := (time.Now()).Add(time.Duration(1) * time.Hour)
 

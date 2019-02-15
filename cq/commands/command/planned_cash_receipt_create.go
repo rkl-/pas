@@ -2,7 +2,7 @@ package command
 
 import (
 	"github.com/satori/go.uuid"
-	"pas/accounting"
+	"pas/money"
 	"time"
 )
 
@@ -12,14 +12,14 @@ import (
 type CreatePlannedCashReceiptCommand struct {
 	BookingAccountId uuid.UUID
 	Date             time.Time
-	Amount           accounting.Money
+	Amount           money.Money
 	Title            string
 }
 
 func (c CreatePlannedCashReceiptCommand) New(
 	bookingAccountId uuid.UUID,
 	date time.Time,
-	amount accounting.Money,
+	amount money.Money,
 	title string) *CreatePlannedCashReceiptCommand {
 	cmd := &CreatePlannedCashReceiptCommand{
 		BookingAccountId: bookingAccountId,

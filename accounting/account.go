@@ -3,7 +3,11 @@ package accounting
 import (
 	"github.com/satori/go.uuid"
 	"math/big"
+	"pas/accounting/errors"
+	"pas/accounting/structs"
 	"pas/events"
+	"pas/money"
+	errors2 "pas/money/errors"
 	"strings"
 )
 
@@ -13,9 +17,9 @@ import (
 type Account struct {
 	id                     uuid.UUID
 	title                  string
-	balance                Money
-	plannedCashReceipts    PlannedCashFlowMap
-	plannedCashWithdrawals PlannedCashFlowMap
+	balance                money.Money
+	plannedCashReceipts    structs.PlannedCashFlowMap
+	plannedCashWithdrawals structs.PlannedCashFlowMap
 	recordedEvents         []events.Event
 }
 
@@ -28,18 +32,18 @@ func (a *Account) GetTitle() string {
 }
 
 func (a *Account) GetCurrencyId() string {
-	return a.balance.currencyId
+	return a.balance.GetCurrencyId()
 }
 
-func (a *Account) GetBalance() Money {
+func (a *Account) GetBalance() money.Money {
 	return a.balance
 }
 
-func (a *Account) GetPlannedCashReceipts() PlannedCashFlowMap {
+func (a *Account) GetPlannedCashReceipts() structs.PlannedCashFlowMap {
 	return a.plannedCashReceipts
 }
 
-func (a *Account) GetPlannedCashWithdrawals() PlannedCashFlowMap {
+func (a *Account) GetPlannedCashWithdrawals() structs.PlannedCashFlowMap {
 	return a.plannedCashWithdrawals
 }
 
@@ -51,15 +55,15 @@ func (a *Account) addRecordedEvent(event events.Event) {
 	a.recordedEvents = append(a.recordedEvents, event)
 }
 
-func (a *Account) addValue(value Money, reason string) error {
-	if strings.Compare(a.balance.currencyId, value.currencyId) != 0 {
-		return &UnequalCurrenciesError{}
+func (a *Account) addValue(value money.Money, reason string) error {
+	if strings.Compare(a.balance.GetCurrencyId(), value.GetCurrencyId()) != 0 {
+		return &errors2.UnequalCurrenciesError{}
 	}
 
-	currencyId := a.balance.currencyId
-	newAmount := (&big.Int{}).Add(a.balance.amount, value.amount)
+	currencyId := a.balance.GetCurrencyId()
+	newAmount := (&big.Int{}).Add(a.balance.GetAmount(), value.GetAmount())
 
-	newBalance, err := Money{}.NewFromString(newAmount.String(), currencyId)
+	newBalance, err := money.Money{}.NewFromString(newAmount.String(), currencyId)
 	if err != nil {
 		return err
 	}
@@ -69,19 +73,19 @@ func (a *Account) addValue(value Money, reason string) error {
 	return nil
 }
 
-func (a *Account) subtractValue(value Money, reason string) error {
+func (a *Account) subtractValue(value money.Money, reason string) error {
 	ok, err := a.balance.IsLowerThan(value)
 	if err != nil {
 		return err
 	}
 	if ok {
-		return &InsufficientFoundsError{}
+		return &errors.InsufficientFoundsError{}
 	}
 
-	currencyId := a.balance.currencyId
-	newAmount := (&big.Int{}).Sub(a.balance.amount, value.amount)
+	currencyId := a.balance.GetCurrencyId()
+	newAmount := (&big.Int{}).Sub(a.balance.GetAmount(), value.GetAmount())
 
-	newBalance, err := Money{}.NewFromString(newAmount.String(), currencyId)
+	newBalance, err := money.Money{}.NewFromString(newAmount.String(), currencyId)
 	if err != nil {
 		return err
 	}
@@ -91,15 +95,15 @@ func (a *Account) subtractValue(value Money, reason string) error {
 	return nil
 }
 
-func (a *Account) addPlannedCashFlow(cashFlow *PlannedCashFlow, target *PlannedCashFlowMap) error {
-	amount := cashFlow.amount
+func (a *Account) addPlannedCashFlow(cashFlow *structs.PlannedCashFlow, target *structs.PlannedCashFlowMap) error {
+	amount := cashFlow.Amount
 
-	if strings.Compare(a.balance.currencyId, amount.currencyId) != 0 {
-		return &UnequalCurrenciesError{}
+	if strings.Compare(a.balance.GetCurrencyId(), amount.GetCurrencyId()) != 0 {
+		return &errors2.UnequalCurrenciesError{}
 	}
 
 	if *target == nil {
-		*target = PlannedCashFlowMap{}
+		*target = structs.PlannedCashFlowMap{}
 	}
 
 	(*target)[cashFlow.GetId()] = cashFlow
@@ -107,10 +111,10 @@ func (a *Account) addPlannedCashFlow(cashFlow *PlannedCashFlow, target *PlannedC
 	return nil
 }
 
-func (a *Account) addPlannedCashReceipt(receipt *PlannedCashFlow) error {
+func (a *Account) addPlannedCashReceipt(receipt *structs.PlannedCashFlow) error {
 	return a.addPlannedCashFlow(receipt, &a.plannedCashReceipts)
 }
 
-func (a *Account) addPlannedCashWithdrawal(withdrawal *PlannedCashFlow) error {
+func (a *Account) addPlannedCashWithdrawal(withdrawal *structs.PlannedCashFlow) error {
 	return a.addPlannedCashFlow(withdrawal, &a.plannedCashWithdrawals)
 }

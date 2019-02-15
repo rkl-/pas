@@ -4,9 +4,11 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"pas/accounting"
+	"pas/accounting/errors"
 	"pas/cq"
 	"pas/cq/commands/command"
 	"pas/events"
+	"pas/money"
 	"testing"
 	"time"
 )
@@ -56,7 +58,7 @@ func TestConfirmPlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 	{
 		confirmCommand := command.ConfirmPlannedCashReceiptCommand{}.New(uuid.NewV4(), uuid.NewV4())
 		_, err := cmdBus.Execute(confirmCommand)
-		assert.IsType(t, &accounting.AccountNotFoundError{}, err)
+		assert.IsType(t, &errors.AccountNotFoundError{}, err)
 	}
 
 	// create test account
@@ -74,7 +76,7 @@ func TestConfirmPlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 		createPlannedCashReceiptCommand := command.CreatePlannedCashReceiptCommand{}.New(
 			accountId,
 			(time.Now()).Add(time.Duration(time.Second*5)),
-			accounting.Money{}.NewFromInt(10000, "EUR"), // 100.00 EUR
+			money.Money{}.NewFromInt(10000, "EUR"), // 100.00 EUR
 			"For testing only",
 		)
 
@@ -98,7 +100,7 @@ func TestConfirmPlannedCashReceiptCommandHandler_Handle(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, account)
 
-		expectedBalance := accounting.Money{}.NewFromInt(10000, "EUR")
+		expectedBalance := money.Money{}.NewFromInt(10000, "EUR")
 		assert.True(t, account.GetBalance().IsEqual(expectedBalance))
 	}
 }

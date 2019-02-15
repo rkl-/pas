@@ -1,8 +1,9 @@
-package accounting
+package money
 
 import (
 	"fmt"
 	"math/big"
+	"pas/money/errors"
 	"strings"
 )
 
@@ -75,7 +76,7 @@ func (m Money) GetAmount() *big.Int {
 //
 func (m Money) IsLowerThan(value Money) (bool, error) {
 	if strings.Compare(m.currencyId, value.GetCurrencyId()) != 0 {
-		return false, &UnequalCurrenciesError{}
+		return false, &errors.UnequalCurrenciesError{}
 	}
 
 	selfAmount := m.amount

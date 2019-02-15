@@ -2,7 +2,11 @@ package accounting
 
 import (
 	"github.com/satori/go.uuid"
+	"pas/accounting/errors"
+	events2 "pas/accounting/events"
+	"pas/accounting/structs"
 	"pas/events"
+	"pas/money"
 )
 
 // AccountRepository
@@ -40,8 +44,8 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 		}
 
 		if !gotExpectedFirstEvent {
-			if _, ok := event.(*AccountCreatedEvent); !ok {
-				return nil, &AccountCreatedEventNotFoundError{}
+			if _, ok := event.(*events2.AccountCreatedEvent); !ok {
+				return nil, &errors.AccountCreatedEventNotFoundError{}
 			}
 			gotExpectedFirstEvent = true
 		}
@@ -50,17 +54,17 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 		//
 		// AccountCreatedEvent
 		//
-		case *AccountCreatedEvent:
-			account.title = event.(*AccountCreatedEvent).accountTitle
-			account.balance = Money{}.NewFromInt(0, event.(*AccountCreatedEvent).currencyId)
+		case *events2.AccountCreatedEvent:
+			account.title = event.(*events2.AccountCreatedEvent).AccountTitle
+			account.balance = money.Money{}.NewFromInt(0, event.(*events2.AccountCreatedEvent).AurrencyId)
 			break
 
 		//
 		// AccountValueAddedEvent
 		//
-		case *AccountValueAddedEvent:
-			value := event.(*AccountValueAddedEvent).value
-			reason := event.(*AccountValueAddedEvent).reason
+		case *events2.AccountValueAddedEvent:
+			value := event.(*events2.AccountValueAddedEvent).Value
+			reason := event.(*events2.AccountValueAddedEvent).Reason
 
 			if err := account.addValue(value, reason); err != nil {
 				return nil, err
@@ -70,9 +74,9 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 		//
 		// AccountValueSubtractedEvent
 		//
-		case *AccountValueSubtractedEvent:
-			value := event.(*AccountValueSubtractedEvent).value
-			reason := event.(*AccountValueSubtractedEvent).reason
+		case *events2.AccountValueSubtractedEvent:
+			value := event.(*events2.AccountValueSubtractedEvent).Value
+			reason := event.(*events2.AccountValueSubtractedEvent).Reason
 
 			if err := account.subtractValue(value, reason); err != nil {
 				return nil, err
@@ -82,13 +86,13 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 		//
 		// PlannedCashReceiptCreatedEvent
 		//
-		case *PlannedCashReceiptCreatedEvent:
-			plannedReceipt := &PlannedCashFlow{
-				id:        event.(*PlannedCashReceiptCreatedEvent).ReceiptId,
-				accountId: event.(*PlannedCashReceiptCreatedEvent).AccountId,
-				date:      event.(*PlannedCashReceiptCreatedEvent).Date,
-				amount:    event.(*PlannedCashReceiptCreatedEvent).Amount,
-				title:     event.(*PlannedCashReceiptCreatedEvent).Title,
+		case *events2.PlannedCashReceiptCreatedEvent:
+			plannedReceipt := &structs.PlannedCashFlow{
+				Id:        event.(*events2.PlannedCashReceiptCreatedEvent).ReceiptId,
+				AccountId: event.(*events2.PlannedCashReceiptCreatedEvent).AccountId,
+				Date:      event.(*events2.PlannedCashReceiptCreatedEvent).Date,
+				Amount:    event.(*events2.PlannedCashReceiptCreatedEvent).Amount,
+				Title:     event.(*events2.PlannedCashReceiptCreatedEvent).Title,
 			}
 			if err := account.addPlannedCashReceipt(plannedReceipt); err != nil {
 				return nil, err
@@ -96,9 +100,9 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 
 			break
 
-		case *PlannedCashReceiptConfirmedEvent:
-			value := event.(*PlannedCashReceiptConfirmedEvent).Amount
-			reason := event.(*PlannedCashReceiptConfirmedEvent).Title
+		case *events2.PlannedCashReceiptConfirmedEvent:
+			value := event.(*events2.PlannedCashReceiptConfirmedEvent).Amount
+			reason := event.(*events2.PlannedCashReceiptConfirmedEvent).Title
 
 			if err := account.addValue(value, reason); err != nil {
 				return nil, err
@@ -106,9 +110,9 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 
 			break
 
-		case *PlannedCashWithdrawalConfirmedEvent:
-			value := event.(*PlannedCashWithdrawalConfirmedEvent).Amount
-			reason := event.(*PlannedCashWithdrawalConfirmedEvent).Title
+		case *events2.PlannedCashWithdrawalConfirmedEvent:
+			value := event.(*events2.PlannedCashWithdrawalConfirmedEvent).Amount
+			reason := event.(*events2.PlannedCashWithdrawalConfirmedEvent).Title
 
 			if err := account.subtractValue(value, reason); err != nil {
 				return nil, err
@@ -119,13 +123,13 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 		//
 		// PlannedCashWithdrawalCreatedEvent
 		//
-		case *PlannedCashWithdrawalCreatedEvent:
-			plannedWithdrawal := &PlannedCashFlow{
-				id:        event.(*PlannedCashWithdrawalCreatedEvent).WithdrawalId,
-				accountId: event.(*PlannedCashWithdrawalCreatedEvent).AccountId,
-				date:      event.(*PlannedCashWithdrawalCreatedEvent).Date,
-				amount:    event.(*PlannedCashWithdrawalCreatedEvent).Amount,
-				title:     event.(*PlannedCashWithdrawalCreatedEvent).Title,
+		case *events2.PlannedCashWithdrawalCreatedEvent:
+			plannedWithdrawal := &structs.PlannedCashFlow{
+				Id:        event.(*events2.PlannedCashWithdrawalCreatedEvent).WithdrawalId,
+				AccountId: event.(*events2.PlannedCashWithdrawalCreatedEvent).AccountId,
+				Date:      event.(*events2.PlannedCashWithdrawalCreatedEvent).Date,
+				Amount:    event.(*events2.PlannedCashWithdrawalCreatedEvent).Amount,
+				Title:     event.(*events2.PlannedCashWithdrawalCreatedEvent).Title,
 			}
 			if err := account.addPlannedCashWithdrawal(plannedWithdrawal); err != nil {
 				return nil, err
@@ -136,10 +140,10 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 		//
 		// AccountValueTransferredEvent
 		//
-		case *AccountValueTransferredEvent:
-			fromId := event.(*AccountValueTransferredEvent).fromId
-			value := event.(*AccountValueTransferredEvent).value
-			reason := event.(*AccountValueTransferredEvent).reason
+		case *events2.AccountValueTransferredEvent:
+			fromId := event.(*events2.AccountValueTransferredEvent).FromId
+			value := event.(*events2.AccountValueTransferredEvent).Value
+			reason := event.(*events2.AccountValueTransferredEvent).Reason
 
 			if fromId == id {
 				if err := account.subtractValue(value, reason); err != nil {
@@ -172,9 +176,9 @@ func (r *AccountRepository) getHistoryFor(accountId uuid.UUID) chan events.Event
 					ch <- event
 				}
 				break
-			case *AccountValueTransferredEvent:
-				if event.(*AccountValueTransferredEvent).fromId == accountId ||
-					event.(*AccountValueTransferredEvent).toId == accountId {
+			case *events2.AccountValueTransferredEvent:
+				if event.(*events2.AccountValueTransferredEvent).FromId == accountId ||
+					event.(*events2.AccountValueTransferredEvent).ToId == accountId {
 					ch <- event
 				}
 				break

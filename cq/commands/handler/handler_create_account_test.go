@@ -7,6 +7,7 @@ import (
 	"pas/cq"
 	commandPkg "pas/cq/commands/command"
 	"pas/events"
+	"pas/money"
 	"testing"
 )
 
@@ -56,7 +57,7 @@ func TestCreateAccountCommandHandler_Handle(t *testing.T) {
 			assert.Equal(t, currencyId, loadedAccount.GetCurrencyId())
 
 			// It also should have a zero balance.
-			assert.True(t, loadedAccount.GetBalance().IsEqual(accounting.Money{}.NewFromInt(0, currencyId)))
+			assert.True(t, loadedAccount.GetBalance().IsEqual(money.Money{}.NewFromInt(0, currencyId)))
 		}
 	}
 }
