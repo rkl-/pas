@@ -237,3 +237,33 @@ func (l *DefaultLedger) addAndDispatchAccountEvent(account *Account, event event
 
 	return nil
 }
+
+// ConfirmPlannedCashWithdrawal confirm a planned cash withdrawal
+//
+//
+func (l *DefaultLedger) ConfirmPlannedCashWithdrawal(accountId uuid.UUID, withdrawalId uuid.UUID) error {
+	account, err := l.LoadAccount(accountId)
+	if err != nil {
+		return err
+	}
+
+	flows := account.GetPlannedCashWithdrawals()
+	withdrawal, ok := flows[withdrawalId]
+	if !ok {
+		return &PlannedCashWithdrawalNotFoundError{withdrawalId, accountId}
+	}
+
+	if err := account.addValue(withdrawal.amount, withdrawal.title); err != nil {
+		return err
+	}
+
+	delete(account.plannedCashWithdrawals, withdrawalId)
+
+	event := PlannedCashWithdrawalConfirmedEvent{}.NewFrom(withdrawal)
+
+	if err := l.addAndDispatchAccountEvent(account, event); err != nil {
+		return err
+	}
+
+	return nil
+}

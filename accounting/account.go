@@ -39,6 +39,10 @@ func (a *Account) GetPlannedCashReceipts() PlannedCashFlowMap {
 	return a.plannedCashReceipts
 }
 
+func (a *Account) GetPlannedCashWithdrawals() PlannedCashFlowMap {
+	return a.plannedCashWithdrawals
+}
+
 func (a *Account) addRecordedEvent(event events.Event) {
 	if a.recordedEvents == nil {
 		a.recordedEvents = []events.Event{}

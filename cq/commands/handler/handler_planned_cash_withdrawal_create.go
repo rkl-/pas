@@ -30,5 +30,5 @@ func (h *CreatePlannedCashWithdrawalCommandHandler) Handle(request cq.Request) (
 		return nil, err
 	}
 
-	return nil, nil
+	return cashWithdrawal.GetId(), nil
 }

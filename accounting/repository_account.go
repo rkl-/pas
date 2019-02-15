@@ -106,6 +106,16 @@ func (r *AccountRepository) loadById(id uuid.UUID) (*Account, error) {
 
 			break
 
+		case *PlannedCashWithdrawalConfirmedEvent:
+			value := event.(*PlannedCashWithdrawalConfirmedEvent).Amount
+			reason := event.(*PlannedCashWithdrawalConfirmedEvent).Title
+
+			if err := account.subtractValue(value, reason); err != nil {
+				return nil, err
+			}
+
+			break
+
 		//
 		// PlannedCashWithdrawalCreatedEvent
 		//

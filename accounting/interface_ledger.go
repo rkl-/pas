@@ -45,4 +45,9 @@ type Ledger interface {
 	//
 	//
 	AddPlannedCashWithdrawal(accountId uuid.UUID, withdrawal *PlannedCashFlow) error
+
+	// ConfirmPlannedCashWithdrawal confirm a planned cash withdrawal
+	//
+	//
+	ConfirmPlannedCashWithdrawal(accountId uuid.UUID, withdrawalId uuid.UUID) error
 }
